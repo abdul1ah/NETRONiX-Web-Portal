@@ -1,54 +1,45 @@
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { Nav } from "@/components/ui/nav";
+import { Hero } from "@/components/sections/hero";
+import { CinematicBridge } from "@/components/sections/cinematic-bridge";
+import { About } from "@/components/sections/about";
+import { Events } from "@/components/sections/events";
+import { ComplaintPortal } from "@/components/sections/complaint-portal";
+import { Community } from "@/components/sections/community";
+import { Join } from "@/components/sections/join";
+import { Footer } from "@/components/sections/footer";
 
-export default function Home() {
+export default function HomePage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-8 p-8">
-      <h1 className="text-4xl font-bold">Taste-Skill</h1>
-      <p className="text-muted-foreground">
-        Next.js + shadcn/ui components
-      </p>
+    <>
+      {/* ── Navigation ─────────────────────────────────────────────────── */}
+      <Nav />
 
-      <div className="flex flex-wrap gap-4">
-        <Badge>Default</Badge>
-        <Badge variant="secondary">Secondary</Badge>
-        <Badge variant="outline">Outline</Badge>
-        <Badge variant="destructive">Destructive</Badge>
-      </div>
+      {/* ── Main narrative flow ─────────────────────────────────────────── */}
+      <main id="main-content">
+        {/* 1. Network Awakens */}
+        <Hero />
 
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Welcome</CardTitle>
-          <CardDescription>
-            This project is set up with shadcn/ui components.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Input placeholder="Type something..." />
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline">Cancel</Button>
-          <Button>Submit</Button>
-        </CardFooter>
-      </Card>
+        {/* 2. Cinematic Bridge — Signal travels → NETRONiX logo reveals */}
+        <CinematicBridge />
 
-      <div className="flex flex-wrap gap-4">
-        <Button>Default</Button>
-        <Button variant="secondary">Secondary</Button>
-        <Button variant="destructive">Destructive</Button>
-        <Button variant="outline">Outline</Button>
-        <Button variant="ghost">Ghost</Button>
-        <Button variant="link">Link</Button>
-      </div>
-    </div>
+        {/* 3. About — Powering Every Connection */}
+        <About />
+
+        {/* 4. Events */}
+        <Events />
+
+        {/* 5. Complaint Portal */}
+        <ComplaintPortal />
+
+        {/* 6. Community */}
+        <Community />
+
+        {/* 7. Join */}
+        <Join />
+      </main>
+
+      {/* ── Footer — Network Core ────────────────────────────────────────── */}
+      <Footer />
+    </>
   );
 }
