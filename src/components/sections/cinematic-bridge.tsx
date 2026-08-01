@@ -6,11 +6,16 @@ import { motion, AnimatePresence } from "framer-motion";
 /**
  * CinematicBridge
  *
- * Highly performant transition component.
- * 1. Uses preload="none" so it doesn't block the initial page load (fixes slow load times).
- * 2. Uses IntersectionObserver to trigger loading and playback ONLY when you scroll near it.
- * 3. Plays smoothly at 1x speed (fixes the MP4 scrubbing choppiness).
- * 4. Features the updated premium Space Grotesk NETRONiX logo with red glow.
+ * Transition component between Hero and About.
+ * 1. Video is preloaded normally (file is small — ~5MB — so no need to
+ *    defer loading until scroll-near, which previously caused a load()+play()
+ *    race condition that made the video appear to "end" instantly without
+ *    ever visibly rendering a frame).
+ * 2. Uses IntersectionObserver to trigger PLAYBACK only when scrolled near it
+ *    (loading and playing are now decoupled — loading starts on mount,
+ *    playing starts on intersect).
+ * 3. Section height is a slight ~48vh gap, not a full 100vh wall.
+ * 4. Features the premium Space Grotesk NETRONiX logo with red glow.
  */
 export function CinematicBridge() {
   const sectionRef     = useRef<HTMLDivElement>(null);
@@ -22,17 +27,27 @@ export function CinematicBridge() {
   const [overlayIn,    setOverlayIn]    = useState(false);
   const [done,         setDone]         = useState(false);
 
-  // ── Step 1: Intersection Observer — trigger once ─────────────────────────
+  // ── Step 3 (defined early so effects below can reference it) ────────────
+  const skipToAbout = useCallback(() => {
+    setOverlayIn(true);
+    setTimeout(() => {
+      setDone(true);
+      const about = document.getElementById("about");
+      if (about) {
+        about.scrollIntoView({ behavior: "instant", block: "start" });
+      }
+      setTimeout(() => setOverlayIn(false), 80);
+    }, 900);
+  }, []);
+
+  // ── Step 1: Intersection Observer — trigger playback once ───────────────
   useEffect(() => {
     const el = sectionRef.current;
     if (!el) return;
 
     // Hard safety net: no matter what happens with the video (slow network,
-    // stalled buffering, autoplay quirks, a long/undecoded file, etc.) this
-    // section must NEVER hold the page hostage for more than a few seconds.
-    // Without this, a slow-loading video on a real network (unlike localhost)
-    // can leave a full-viewport, non-interactive dead zone that makes
-    // scrolling feel completely broken.
+    // stalled buffering, autoplay quirks, etc.) this section must NEVER hold
+    // the page hostage for more than a few seconds.
     let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
 
     const observer = new IntersectionObserver(
@@ -41,23 +56,17 @@ export function CinematicBridge() {
 
         const video = videoRef.current;
 
-        // Always arm the fallback the moment this section becomes visible,
-        // regardless of whether the video element or play() call succeeds.
         fallbackTimer = setTimeout(() => {
           if (!playedRef.current) {
             playedRef.current = true;
             skipToAbout();
           }
-        }, 3500);
+        }, 3000);
 
-        if (!video) {
-          return;
-        }
+        if (!video) return;
 
-        // Start loading the video ONLY when the user scrolls near this section
-        video.src = "/assets/videos/hero-signal-logo-transition.mp4";
-        video.load();
-
+        // Video's src is already set in JSX and has been preloading since
+        // mount — just play it. No load()+play() race here.
         video
           .play()
           .then(() => {
@@ -73,7 +82,7 @@ export function CinematicBridge() {
 
         observer.disconnect();
       },
-      { threshold: 0.1, rootMargin: "600px 0px 600px 0px" } 
+      { threshold: 0.15, rootMargin: "200px 0px 200px 0px" } 
     );
 
     observer.observe(el);
@@ -81,7 +90,7 @@ export function CinematicBridge() {
       observer.disconnect();
       if (fallbackTimer) clearTimeout(fallbackTimer);
     };
-  }, []); 
+  }, [skipToAbout]); 
 
   // ── Step 2: Show logo near the end of the video ────────────────────────
   const handleTimeUpdate = useCallback(() => {
@@ -93,30 +102,15 @@ export function CinematicBridge() {
   }, [logoVisible]);
 
   // Safety net: once the video has started playing, cap the total time
-  // we'll wait for it to finish. If it stalls or buffers mid-playback
-  // (common on real networks), we still move on rather than blocking scroll.
+  // we'll wait for it to finish. If it stalls or buffers mid-playback,
+  // we still move on rather than blocking scroll.
   useEffect(() => {
     if (!videoFaded) return;
     const maxWaitTimer = setTimeout(() => {
       if (!done) skipToAbout();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, 8000);
     return () => clearTimeout(maxWaitTimer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoFaded]);
-
-  // ── Step 3: Transition to About ─────────────────────────────────────────
-  const skipToAbout = useCallback(() => {
-    setOverlayIn(true);
-    setTimeout(() => {
-      setDone(true);
-      const about = document.getElementById("about");
-      if (about) {
-        about.scrollIntoView({ behavior: "instant", block: "start" });
-      }
-      setTimeout(() => setOverlayIn(false), 80);
-    }, 900);
-  }, []);
+  }, [videoFaded, done, skipToAbout]);
 
   const handleEnded = useCallback(() => {
     setTimeout(skipToAbout, 1000);
@@ -130,8 +124,8 @@ export function CinematicBridge() {
         aria-hidden="true"
         className="relative w-full overflow-hidden"
         style={{
-          height:     done ? 0 : "100svh",
-          minHeight:  done ? 0 : undefined,
+          height:     done ? 0 : "48vh",
+          minHeight:  done ? 0 : "320px",
           transition: done ? "height 0.01s" : undefined,
           pointerEvents: "none",
         }}
@@ -144,10 +138,10 @@ export function CinematicBridge() {
         {/* ── Video ─────────────────────────────────────────────────────── */}
         <motion.video
           ref={videoRef}
+          src="/assets/videos/hero-signal-logo-transition.mp4"
           muted
           playsInline
-          // CRITICAL: preload="none" fixes the slow initial page load time
-          preload="none" 
+          preload="auto"
           className="absolute inset-0 w-full h-full object-cover"
           style={{ zIndex: 1 }}
           initial={{ opacity: 0 }}
