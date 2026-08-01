@@ -1,7 +1,7 @@
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
 import { StatCard } from "@/components/ui/stat-card";
 import TextAnimation from "@/components/ui/staggerText";
-import { RulerCarousel, type CarouselItem } from "@/components/ui/ruler-carousel";
+import { RulerCarousel } from "@/components/ui/ruler-carousel";
 
 const STATS = [
   { value: 2000, suffix: "+", label: "Students Connected",  delay: 0   },
@@ -50,7 +50,7 @@ export function About() {
           >
             <TextAnimation delay={0.5}>
               NETRONiX is the infrastructure and events backbone of Ghulam Ishaq
-              Khan Institute — engineering the campus network, running Pakistan's
+              Khan Institute — engineering the campus network, running Pakistan&apos;s
               premier student gaming events, and fostering the next generation of
               network engineers.
             </TextAnimation>

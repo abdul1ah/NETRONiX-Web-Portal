@@ -3,6 +3,17 @@
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
 import { NetworkLines } from "@/components/ui/network-lines";
 
+// Use Lenis if available, fall back to native smooth scroll
+function scrollTo(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const lenis = (window as unknown as Record<string, unknown>).__lenis as
+    | { scrollTo: (target: HTMLElement, opts: { offset: number; duration: number }) => void }
+    | undefined;
+  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.4 });
+  else el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 // ─── Nav columns ─────────────────────────────────────────────────────────────
 
 const FOOTER_NAV = [
@@ -10,9 +21,8 @@ const FOOTER_NAV = [
     heading: "Society",
     links: [
       { label: "About",   href: "#about"   },
-      { label: "History", href: "#"        },
       { label: "Team",    href: "#"        },
-      { label: "Contact", href: "#"        },
+      { label: "Contact", href: "https://www.instagram.com/netronixgiki/?hl=en" },
     ],
   },
   {
@@ -28,19 +38,14 @@ const FOOTER_NAV = [
     heading: "Portal",
     links: [
       { label: "Complaint Portal", href: "#portal"    },
-      { label: "Support",          href: "#"          },
       { label: "Gallery",          href: "#community" },
-      { label: "FAQ",              href: "#"          },
-      { label: "Resources",        href: "#"          },
     ],
   },
 ] as const;
 
 const SOCIAL_LINKS = [
-  { label: "Instagram", href: "#", icon: InstagramIcon },
-  { label: "LinkedIn",  href: "#", icon: LinkedInIcon  },
-  { label: "Facebook",  href: "#", icon: FacebookIcon   },
-  { label: "X / Twitter", href: "#", icon: XIcon      },
+  { label: "Instagram", href: "https://www.instagram.com/netronixgiki/?hl=en", icon: InstagramIcon },
+  { label: "LinkedIn",  href: "https://www.linkedin.com/company/netronixgiki/", icon: LinkedInIcon  },
 ] as const;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -97,7 +102,7 @@ export function Footer() {
                       className="font-heading font-semibold text-base leading-snug mb-3"
                       style={{ letterSpacing: "-0.02em" }}
                     >
-                      Powering GIKI's Digital Infrastructure
+                      Powering GIKI&apos;s Digital Infrastructure
                     </p>
 
                     <p className="text-xs leading-relaxed" style={{ color: "#666666" }}>
@@ -137,16 +142,16 @@ export function Footer() {
                             <a
                               href={link.href}
                               onClick={(e) => {
-                                const id = link.href.replace("#", "");
-                                if (id) {
+                                if (link.href.startsWith("#")) {
                                   e.preventDefault();
-                                  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+                                  const id = link.href.substring(1);
+                                  if (id) scrollTo(id);
                                 }
                               }}
-                              className="text-sm transition-colors duration-[250ms]"
+                              target={link.href.startsWith("http") ? "_blank" : undefined}
+                              rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
+                              className="text-sm transition-colors duration-[250ms] hover:text-white"
                               style={{ color: "#666666" }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#FFFFFF"; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#666666"; }}
                             >
                               {link.label}
                             </a>
@@ -180,10 +185,10 @@ export function Footer() {
                     href={href}
                     aria-label={label}
                     role="listitem"
-                    className="transition-colors duration-[250ms]"
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="transition-colors duration-[250ms] hover:text-white w-10 h-10 flex items-center justify-center"
                     style={{ color: "#444" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#FFFFFF"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#444"; }}
                   >
                     <Icon />
                   </a>
@@ -218,7 +223,7 @@ export function Footer() {
               style={{
                 fontSize:      "clamp(5rem, 16vw, 20rem)",
                 color:         "#FFFFFF",
-                opacity:       0.03,
+                opacity:       0.06,
                 letterSpacing: "-0.02em",
                 transform:     "translateY(28%)",
               }}
@@ -251,22 +256,6 @@ function LinkedInIcon() {
       <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
       <rect x="2" y="9" width="4" height="12"/>
       <circle cx="4" cy="4" r="2"/>
-    </svg>
-  );
-}
-
-function FacebookIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
     </svg>
   );
 }

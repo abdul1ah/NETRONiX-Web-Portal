@@ -1,6 +1,18 @@
 "use client";
 
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
+import { motion } from "framer-motion";
+
+// Use Lenis if available, fall back to native smooth scroll
+function scrollTo(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const lenis = (window as unknown as Record<string, unknown>).__lenis as
+    | { scrollTo: (target: HTMLElement, opts: { offset: number; duration: number }) => void }
+    | undefined;
+  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.4 });
+  else el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function Join() {
   return (
@@ -31,28 +43,26 @@ export function Join() {
               letterSpacing: "-0.03em",
             }}
           >
-            Join the Team Behind GIKI's
+            Join the Team Behind GIKI&apos;s
             <br />
             <span style={{ color: "#E11D2E" }}>Digital Infrastructure</span>
           </h2>
         </SectionItem>
 
-        {/* ── CTAs ──────────────────────────────────────────────────────── */}
+        {/* ── CTAs ────────────────────────────────────────────────────── */}
         <SectionItem>
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-center">
             {/* Apply — primary */}
-            <a
-              href="#"
-              className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-semibold transition-all duration-[250ms]"
+            <motion.a
+              href="#portal"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo("portal");
+              }}
+              className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-semibold"
               style={{ backgroundColor: "#E11D2E", color: "#FFFFFF" }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = "#FF3B4D";
-                (e.currentTarget as HTMLElement).style.transform = "scale(1.02)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.backgroundColor = "#E11D2E";
-                (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-              }}
+              whileHover={{ backgroundColor: "#FF3B4D", scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               aria-label="Apply to join NETRONiX"
             >
               Apply Now
@@ -63,29 +73,27 @@ export function Join() {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
               </svg>
-            </a>
+            </motion.a>
 
             {/* Volunteer — ghost */}
-            <a
-              href="#"
-              className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-semibold border transition-all duration-[250ms]"
+            <motion.a
+              href="#events"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollTo("events");
+              }}
+              className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-semibold border"
               style={{
                 borderColor: "rgba(255,255,255,0.15)",
                 color: "#FFFFFF",
                 backgroundColor: "transparent",
               }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.4)";
-                (e.currentTarget as HTMLElement).style.backgroundColor = "rgba(255,255,255,0.04)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.15)";
-                (e.currentTarget as HTMLElement).style.backgroundColor = "transparent";
-              }}
+              whileHover={{ borderColor: "rgba(255,255,255,0.4)", backgroundColor: "rgba(255,255,255,0.04)", scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
               aria-label="Volunteer for NETRONiX events"
             >
               Volunteer
-            </a>
+            </motion.a>
           </div>
         </SectionItem>
 

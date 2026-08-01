@@ -1,44 +1,51 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { heroRevealVariant, staggerContainerVariant, DURATION, EASE } from "@/lib/motion";
+import { uiSounds } from "@/lib/audio";
+
+// Use Lenis if available, fall back to native smooth scroll
+function scrollTo(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const lenis = (window as unknown as Record<string, unknown>).__lenis as
+    | { scrollTo: (target: HTMLElement, opts: { offset: number; duration: number }) => void }
+    | undefined;
+  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.4 });
+  else el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function Hero() {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
-  const [firstPlayDone, setFirstPlayDone] = useState(false);
-
-  // After first playback completes → enable seamless loop
-  const handleFirstEnded = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    setFirstPlayDone(true);
-    video.loop = true;
-    video.play().catch(() => {});
-  };
 
   useEffect(() => {
     const video = videoRef.current;
+
+    // Show the scroll indicator regardless of whether the video plays,
+    // fails to load, or autoplay is blocked — never let it hinge on
+    // video playback succeeding.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVideoReady(true);
+
     if (!video) return;
 
     // Safari requires direct play() call
     video.play().catch(() => {
-      // Autoplay blocked — still show content
-      setVideoReady(true);
+      // Autoplay blocked — content is still shown via setVideoReady above
     });
   }, []);
 
   // Scroll indicator click → smooth scroll to next section
   const scrollDown = () => {
-    const next = document.getElementById("cinematic-bridge") ?? document.getElementById("about");
-    next?.scrollIntoView({ behavior: "smooth" });
+    scrollTo("cinematic-bridge");
   };
 
   return (
     <section
       id="hero"
-      className="relative w-full h-screen min-h-[600px] overflow-hidden flex items-center justify-center"
+      className="relative w-full h-[100svh] min-h-[600px] overflow-hidden flex items-center justify-center"
       aria-label="Hero — NETRONiX Network Awakens"
     >
       {/* ── Background Video ────────────────────────────────────────────── */}
@@ -46,11 +53,13 @@ export function Hero() {
         ref={videoRef}
         src="/assets/videos/hero-network-awakens.mp4"
         autoPlay
+        loop
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
+        poster="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
         className="absolute inset-0 w-full h-full object-cover"
-        onEnded={handleFirstEnded}
+        style={{ backgroundColor: "#050505" }}
         aria-hidden="true"
       />
 
@@ -87,7 +96,8 @@ export function Hero() {
                 color: "#FFFFFF",
               }}
             >
-              Powering GIKI's{" "}
+              Powering GIKI&apos;s{" "}
+              <br className="md:hidden" />
               <span style={{ color: "#E11D2E" }}>Digital</span>{" "}
               Infrastructure
             </motion.h1>
@@ -98,9 +108,8 @@ export function Hero() {
               className="max-w-xl text-base md:text-lg leading-relaxed mb-10"
               style={{ color: "#B3B3B3" }}
             >
-              Maintaining one of Pakistan's largest student-managed campus
-              networks while creating unforgettable technical and gaming
-              experiences.
+              The digital backbone of GIKI&apos;s technical infrastructure and gaming community.
+            We build the systems that connect, and the experiences that unite.
             </motion.p>
 
             {/* CTAs */}
@@ -110,9 +119,11 @@ export function Hero() {
             >
               <motion.a
                 href="#events"
+                onMouseEnter={uiSounds.playHover}
                 onClick={(e) => {
                   e.preventDefault();
-                  document.getElementById("events")?.scrollIntoView({ behavior: "smooth" });
+                  uiSounds.playClick();
+                  scrollTo("events");
                 }}
                 className="px-6 py-3 rounded-full text-sm font-semibold transition-all"
                 style={{
@@ -129,9 +140,11 @@ export function Hero() {
 
               <motion.a
                 href="#portal"
+                onMouseEnter={uiSounds.playHover}
                 onClick={(e) => {
                   e.preventDefault();
-                  document.getElementById("portal")?.scrollIntoView({ behavior: "smooth" });
+                  uiSounds.playClick();
+                  scrollTo("portal");
                 }}
                 className="px-6 py-3 rounded-full text-sm font-semibold transition-all"
                 style={{
@@ -152,11 +165,16 @@ export function Hero() {
 
       {/* ── Scroll indicator ─────────────────────────────────────────────── */}
       <motion.button
+        type="button"
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 cursor-pointer"
         initial={{ opacity: 0, y: 8 }}
         animate={videoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-        transition={{ delay: 2.5, duration: DURATION.section, ease: EASE.elegant }}
-        onClick={scrollDown}
+        transition={{ delay: 1.2, duration: DURATION.section, ease: EASE.elegant }}
+        onMouseEnter={uiSounds.playHover}
+        onClick={() => {
+          uiSounds.playClick();
+          scrollDown();
+        }}
         aria-label="Scroll down to explore"
       >
         <span className="font-mono text-xs uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.3)", letterSpacing: "0.12em" }}>

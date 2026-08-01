@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import gsap from "gsap";
+import { useEffect, useRef } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,55 +37,58 @@ const EDGES: Edge[] = [
 
 /**
  * Subtle animated network topology behind the Network Core card.
- * GSAP animates one red signal dot per edge every 5–8 seconds.
+ * GSAP is loaded lazily so it doesn't block the initial bundle.
+ * Animates one red signal dot per edge every 5–8 seconds.
  */
 export function NetworkLines() {
-  const svgRef   = useRef<SVGSVGElement>(null);
-  const dotsRef  = useRef<(SVGCircleElement | null)[]>([]);
-  const tlsRef   = useRef<gsap.core.Tween[]>([]);
-
-  const scheduleSignal = useCallback((dot: SVGCircleElement, edge: Edge, delay: number) => {
-    const tl = gsap.fromTo(
-      dot,
-      {
-        motionPath: undefined, // reset
-        attr: { cx: edge.from.x, cy: edge.from.y },
-        opacity: 0,
-      },
-      {
-        attr: { cx: edge.to.x, cy: edge.to.y },
-        opacity: 1,
-        duration: 1.8,
-        ease: "power2.inOut",
-        delay,
-        onStart: () => gsap.set(dot, { opacity: 1 }),
-        onComplete: () => {
-          gsap.to(dot, { opacity: 0, duration: 0.3 });
-          // Re-schedule on a random edge after 5–8 seconds
-          const nextDelay = 5 + Math.random() * 3;
-          const nextEdge  = EDGES[Math.floor(Math.random() * EDGES.length)];
-          scheduleSignal(dot, nextEdge, nextDelay);
-        },
-      }
-    );
-    tlsRef.current.push(tl);
-  }, []);
+  const svgRef  = useRef<SVGSVGElement>(null);
+  const dotsRef = useRef<(SVGCircleElement | null)[]>([]);
+  // Store GSAP tweens for cleanup
+  const tlsRef  = useRef<{ kill: () => void }[]>([]);
 
   useEffect(() => {
-    // Stagger initial pulses so they don't all start together
-    NODES.forEach((_, i) => {
-      const dot = dotsRef.current[i];
-      if (!dot) return;
-      const edge  = EDGES[i % EDGES.length];
-      const delay = i * 1.2 + Math.random() * 2;
-      scheduleSignal(dot, edge, delay);
+    let cancelled = false;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const scheduleSignal = (gsap: any, dot: SVGCircleElement, edge: Edge, delay: number) => {
+      const tl = gsap.fromTo(
+        dot,
+        { attr: { cx: edge.from.x, cy: edge.from.y }, opacity: 0 },
+        {
+          attr: { cx: edge.to.x, cy: edge.to.y },
+          opacity: 1,
+          duration: 1.8,
+          ease: "power2.inOut",
+          delay,
+          onStart: () => gsap.set(dot, { opacity: 1 }),
+          onComplete: () => {
+            gsap.to(dot, { opacity: 0, duration: 0.3 });
+            const nextDelay = 5 + Math.random() * 3;
+            const nextEdge  = EDGES[Math.floor(Math.random() * EDGES.length)];
+            scheduleSignal(gsap, dot, nextEdge, nextDelay);
+          },
+        }
+      );
+      tlsRef.current.push(tl);
+    };
+
+    // Lazy-load GSAP — only downloaded when this component mounts
+    import("gsap").then(({ gsap }) => {
+      if (cancelled) return;
+      EDGES.forEach((edge, i) => {
+        const dot = dotsRef.current[i];
+        if (!dot) return;
+        const delay = i * 0.9 + Math.random() * 2;
+        scheduleSignal(gsap, dot, edge, delay);
+      });
     });
 
     return () => {
+      cancelled = true;
       tlsRef.current.forEach((tl) => tl?.kill());
       tlsRef.current = [];
     };
-  }, [scheduleSignal]);
+  }, []);
 
   return (
     <svg
@@ -117,7 +119,7 @@ export function NetworkLines() {
         />
       ))}
 
-      {/* Animated signal dots (one per EDGE.length) */}
+      {/* Animated signal dots — one per edge */}
       {EDGES.map((edge, i) => (
         <circle
           key={`dot-${i}`}

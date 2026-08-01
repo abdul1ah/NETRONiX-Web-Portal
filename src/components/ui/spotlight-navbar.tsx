@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { animate } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { uiSounds } from "@/lib/audio";
 
 export interface NavItem {
     label: string;
@@ -14,6 +15,7 @@ export interface SpotlightNavbarProps {
     className?: string;
     onItemClick?: (item: NavItem, index: number) => void;
     defaultActiveIndex?: number;
+    activeIndex?: number;        // controlled prop — driven by IntersectionObserver
     leftContent?: React.ReactNode;
     rightContent?: React.ReactNode;
 }
@@ -29,27 +31,21 @@ export function SpotlightNavbar({
     className,
     onItemClick,
     defaultActiveIndex = 0,
+    activeIndex: controlledIndex,   // from Nav's IntersectionObserver
     leftContent,
     rightContent,
 }: SpotlightNavbarProps) {
     const navRef = useRef<HTMLDivElement>(null);
-    const [activeIndex, setActiveIndex] = useState(defaultActiveIndex);
+    const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
     const [hoverX, setHoverX] = useState<number | null>(null);
-    const [isDark, setIsDark] = useState(false);
+
+    // Controlled takes priority; fall back to internal (click-based) state
+    // -1 means no section is active (above all sections) — show nothing
+    const activeIndex = controlledIndex !== undefined ? controlledIndex : internalIndex;
 
     // Refs for the "light" positions so we can animate them imperatively
     const spotlightX = useRef(0);
     const ambienceX = useRef(0);
-
-    useEffect(() => {
-        const checkTheme = () => {
-            setIsDark(document.documentElement.classList.contains('dark'));
-        };
-        checkTheme();
-        const observer = new MutationObserver(checkTheme);
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
         if (!navRef.current) return;
@@ -118,7 +114,8 @@ export function SpotlightNavbar({
     }, [activeIndex]);
 
     const handleItemClick = (item: NavItem, index: number) => {
-        setActiveIndex(index);
+        uiSounds.playClick();
+        setInternalIndex(index);
         onItemClick?.(item, index);
     };
 
@@ -141,6 +138,7 @@ export function SpotlightNavbar({
                             <a
                                 href={item.href}
                                 data-index={idx}
+                                onMouseEnter={uiSounds.playHover}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     handleItemClick(item, idx);
@@ -184,8 +182,9 @@ export function SpotlightNavbar({
 
                 {/* 2. The Active State Ambience (Stays on Active) */}
                 <div
-                    className="pointer-events-none absolute bottom-0 left-0 w-full h-[2px] z-[2]"
+                    className="pointer-events-none absolute bottom-0 left-0 w-full h-[2px] z-[2] transition-opacity duration-300"
                     style={{
+                        opacity: activeIndex >= 0 ? 1 : 0,
                         background: `
                   radial-gradient(
                     60px circle at var(--ambience-x) 0%, 
@@ -198,22 +197,6 @@ export function SpotlightNavbar({
 
             </nav>
 
-            {/* STYLE BLOCK for Dynamic Colors 
-        This allows us to switch the gradient colors cleanly using Tailwind classes 
-        without messy inline conditionals.
-      */}
-            <style jsx>{`
-        nav {
-          /* Light Mode Colors: Dark Gray/Black lights */
-          --spotlight-color: rgba(0,0,0,0.08);
-          --ambience-color: rgba(0,0,0,0.8);
-        }
-        :global(.dark) nav {
-          /* Dark Mode Colors: White lights */
-          --spotlight-color: rgba(255,255,255,0.15);
-          --ambience-color: rgba(255,255,255,1);
-        }
-      `}</style>
         </div>
     );
 }

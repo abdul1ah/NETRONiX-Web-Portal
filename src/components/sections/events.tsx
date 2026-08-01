@@ -106,7 +106,7 @@ export function Events() {
             style={{ color: "#666666" }}
           >
             From annual gaming tournaments to hackathons — NETRONiX builds
-            GIKI's most memorable experiences.
+            GIKI&apos;s most memorable experiences.
           </p>
         </SectionItem>
 
@@ -117,12 +117,12 @@ export function Events() {
             - Desktop: UGX spans 2 rows on the left; 2×2 grid on right
             - Mobile: single column stack
           */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-            {/* Large UGX card — spans 2 rows */}
-            <div className="md:row-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Large UGX card — spans 2 rows on lg */}
+            <div className="md:col-span-1 lg:row-span-2">
               <EventCard
                 {...ugx}
-                aspectClass="aspect-[4/3] md:aspect-auto md:min-h-[480px]"
+                aspectClass="aspect-[4/3] lg:aspect-auto lg:min-h-[480px]"
               />
             </div>
 

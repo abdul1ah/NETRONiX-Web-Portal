@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface CylinderCarouselProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -8,7 +8,7 @@ export interface CylinderCarouselProps extends React.HTMLAttributes<HTMLDivEleme
   containerClassName?: string;
   cardClassName?: string;
   animationDuration?: number; // in seconds
-  cardWidth?: number; // in pixels
+  cardWidth?: number | string; // in pixels or CSS value
   aspectRatio?: string; // CSS aspect-ratio
 }
 
@@ -33,7 +33,7 @@ export const CylinderCarousel = React.forwardRef<HTMLDivElement, CylinderCarouse
     // --w: card width
     const customStyle = {
       "--n": N,
-      "--w": `${cardWidth}px`,
+      "--w": typeof cardWidth === "number" ? `${cardWidth}px` : cardWidth,
       "--ba": `calc(1turn / var(--n))`,
       // animation duration
       "--anim-dur": `${animationDuration}s`,

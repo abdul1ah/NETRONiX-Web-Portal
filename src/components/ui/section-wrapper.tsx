@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { motion, useInView } from "framer-motion";
-import { fadeUpVariant, staggerContainerVariant, DURATION, EASE } from "@/lib/motion";
+import { fadeUpVariant, staggerContainerVariant } from "@/lib/motion";
 
 interface SectionWrapperProps {
   children: React.ReactNode;
