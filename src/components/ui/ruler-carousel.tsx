@@ -9,9 +9,13 @@ export interface CarouselItem {
   content: ReactNode;
 }
 
+interface InfiniteCarouselItem extends CarouselItem {
+  originalIndex: number;
+}
+
 // Create infinite items by triplicating the array
 const createInfiniteItems = (originalItems: CarouselItem[]) => {
-  const items = [];
+  const items: InfiniteCarouselItem[] = [];
   for (let i = 0; i < 3; i++) {
     originalItems.forEach((item, index) => {
       items.push({
