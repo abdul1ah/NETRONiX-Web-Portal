@@ -74,11 +74,10 @@ export function NetworkLines() {
 
   useEffect(() => {
     // Stagger initial pulses so they don't all start together
-    NODES.forEach((_, i) => {
+    EDGES.forEach((edge, i) => {
       const dot = dotsRef.current[i];
       if (!dot) return;
-      const edge  = EDGES[i % EDGES.length];
-      const delay = i * 1.2 + Math.random() * 2;
+      const delay = i * 0.9 + Math.random() * 2;
       scheduleSignal(dot, edge, delay);
     });
 

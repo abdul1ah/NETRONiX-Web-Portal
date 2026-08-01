@@ -179,6 +179,7 @@ export function Nav() {
                   style={{ backgroundColor: "#E11D2E" }}
                   whileHover={{ backgroundColor: "#FF3B4D" }}
                   whileTap={{ scale: 0.98 }}
+                  aria-label="Report a network issue"
                 >
                   Report Issue
                 </motion.button>

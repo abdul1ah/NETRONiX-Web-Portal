@@ -198,22 +198,6 @@ export function SpotlightNavbar({
 
             </nav>
 
-            {/* STYLE BLOCK for Dynamic Colors 
-        This allows us to switch the gradient colors cleanly using Tailwind classes 
-        without messy inline conditionals.
-      */}
-            <style jsx>{`
-        nav {
-          /* Light Mode Colors: Dark Gray/Black lights */
-          --spotlight-color: rgba(0,0,0,0.08);
-          --ambience-color: rgba(0,0,0,0.8);
-        }
-        :global(.dark) nav {
-          /* Dark Mode Colors: White lights */
-          --spotlight-color: rgba(255,255,255,0.15);
-          --ambience-color: rgba(255,255,255,1);
-        }
-      `}</style>
         </div>
     );
 }

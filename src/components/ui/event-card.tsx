@@ -57,7 +57,7 @@ export function EventCard({
         {imageSrc ? (
           <Image
             src={imageSrc}
-            alt={title}
+            alt=""
             fill
             className="object-cover transition-transform duration-700 group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -80,23 +80,23 @@ export function EventCard({
           className="absolute bottom-0 left-0 right-0 h-1/2"
           style={{ background: `linear-gradient(to top, ${accentColor}, transparent)` }}
         />
+      </div>
 
-        {/* Status badge overlaid on image */}
-        <div className="absolute top-3 left-3">
-          <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
-            style={{ color: statusCfg.color, backgroundColor: statusCfg.bg }}
-          >
-            {status === "live" && (
-              <span
-                className="w-1.5 h-1.5 rounded-full animate-pulse-red"
-                style={{ backgroundColor: "#E11D2E" }}
-                aria-hidden="true"
-              />
-            )}
-            {statusCfg.label}
-          </span>
-        </div>
+      {/* Status badge — outside aria-hidden so screen readers announce it */}
+      <div className="absolute top-3 left-3 z-10">
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium"
+          style={{ color: statusCfg.color, backgroundColor: statusCfg.bg }}
+        >
+          {status === "live" && (
+            <span
+              className="w-1.5 h-1.5 rounded-full animate-pulse-red"
+              style={{ backgroundColor: "#E11D2E" }}
+              aria-hidden="true"
+            />
+          )}
+          {statusCfg.label}
+        </span>
       </div>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
@@ -119,26 +119,45 @@ export function EventCard({
           {description}
         </p>
 
-        {/* Register button */}
-        <motion.a
-          href={registerHref}
-          className="mt-2 inline-flex items-center justify-center w-full py-2.5 px-4 rounded-lg text-sm font-medium border transition-all duration-[250ms]"
-          style={{
-            borderColor: status === "past" ? "rgba(255,255,255,0.08)" : "rgba(225,29,46,0.4)",
-            color: status === "past" ? "#666666" : "#FFFFFF",
-            pointerEvents: status === "past" ? "none" : "auto",
-          }}
-          whileHover={
-            status !== "past"
-              ? { backgroundColor: "rgba(225,29,46,0.12)", borderColor: "rgba(225,29,46,0.7)" }
-              : {}
-          }
-          whileTap={status !== "past" ? { scale: 0.98 } : {}}
-          aria-disabled={status === "past"}
-          aria-label={status === "past" ? `${title} — concluded` : `Register for ${title}`}
-        >
-          {status === "past" ? "Concluded" : "Register →"}
-        </motion.a>
+        {/* Register button — only shown when a real href exists */}
+        {registerHref && registerHref !== "#" ? (
+          <motion.a
+            href={registerHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-2 inline-flex items-center justify-center w-full py-2.5 px-4 rounded-lg text-sm font-medium border transition-all duration-[250ms]"
+            style={{
+              borderColor: status === "past" ? "rgba(255,255,255,0.08)" : "rgba(225,29,46,0.4)",
+              color: status === "past" ? "#666666" : "#FFFFFF",
+              pointerEvents: status === "past" ? "none" : "auto",
+            }}
+            whileHover={
+              status !== "past"
+                ? { backgroundColor: "rgba(225,29,46,0.12)", borderColor: "rgba(225,29,46,0.7)" }
+                : {}
+            }
+            whileTap={status !== "past" ? { scale: 0.98 } : {}}
+            aria-disabled={status === "past"}
+            aria-label={status === "past" ? `${title} — concluded` : `Register for ${title}`}
+          >
+            {status === "past" ? "Concluded" : "Register →"}
+          </motion.a>
+        ) : status === "past" ? (
+          <div
+            className="mt-2 w-full py-2.5 px-4 rounded-lg text-sm font-medium text-center"
+            style={{ color: "#666666", backgroundColor: "rgba(255,255,255,0.03)" }}
+          >
+            Concluded
+          </div>
+        ) : (
+          <div
+            className="mt-2 w-full py-2.5 px-4 rounded-lg text-sm font-medium text-center border"
+            style={{ borderColor: "rgba(255,255,255,0.08)", color: "#666666" }}
+            title="Registration link coming soon"
+          >
+            Coming Soon
+          </div>
+        )}
       </div>
     </motion.article>
   );

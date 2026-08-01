@@ -143,10 +143,8 @@ export function Footer() {
                                   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
                                 }
                               }}
-                              className="text-sm transition-colors duration-[250ms]"
+                              className="text-sm transition-colors duration-[250ms] hover:text-white"
                               style={{ color: "#666666" }}
-                              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#FFFFFF"; }}
-                              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#666666"; }}
                             >
                               {link.label}
                             </a>
@@ -180,10 +178,10 @@ export function Footer() {
                     href={href}
                     aria-label={label}
                     role="listitem"
-                    className="transition-colors duration-[250ms]"
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="transition-colors duration-[250ms] hover:text-white w-10 h-10 flex items-center justify-center"
                     style={{ color: "#444" }}
-                    onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = "#FFFFFF"; }}
-                    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = "#444"; }}
                   >
                     <Icon />
                   </a>
@@ -218,7 +216,7 @@ export function Footer() {
               style={{
                 fontSize:      "clamp(5rem, 16vw, 20rem)",
                 color:         "#FFFFFF",
-                opacity:       0.03,
+                opacity:       0.06,
                 letterSpacing: "-0.02em",
                 transform:     "translateY(28%)",
               }}

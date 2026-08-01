@@ -95,6 +95,10 @@ export default function RootLayout({
           color: "#FFFFFF",
         }}
       >
+        {/* Skip to main content — WCAG 2.4.1 — visible only on keyboard focus */}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         {children}
       </body>
     </html>

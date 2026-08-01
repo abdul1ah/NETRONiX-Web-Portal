@@ -47,6 +47,7 @@ const GALLERY: GalleryCell[] = [
     accent:   "#FFFFFF",
     gridArea: "networking",
     description: "Industry talks, alumni connections, and career pathways",
+    imageSrc: "/community/Networking.jpg",
   },
   {
     label:    "Volunteers",
@@ -94,8 +95,8 @@ export function Community() {
         <SectionItem className="mt-12">
           <CylinderCarousel
             animationDuration={40} // Nice and slow
-            cardWidth={340}
-            aspectRatio="3/4"
+            cardWidth="clamp(300px, 45vw, 600px)"
+            aspectRatio="4/3"
             items={GALLERY.map((cell) => (
               <div key={cell.label} className="w-full h-full">
                 <CommunityCell cell={cell} />
@@ -128,7 +129,7 @@ function CommunityCell({ cell }: { cell: GalleryCell }) {
           alt={cell.label}
           fill
           className="object-cover transition-transform duration-700 group-hover:scale-105 opacity-80 group-hover:opacity-100"
-          sizes="(max-width: 768px) 100vw, 340px"
+          sizes="(max-width: 768px) 100vw, 600px"
         />
       ) : (
         <>

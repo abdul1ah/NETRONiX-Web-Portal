@@ -44,7 +44,7 @@ export function Hero() {
         loop
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         className="absolute inset-0 w-full h-full object-cover"
         aria-hidden="true"
       />
@@ -147,10 +147,11 @@ export function Hero() {
 
       {/* ── Scroll indicator ─────────────────────────────────────────────── */}
       <motion.button
+        type="button"
         className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 cursor-pointer"
         initial={{ opacity: 0, y: 8 }}
         animate={videoReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
-        transition={{ delay: 2.5, duration: DURATION.section, ease: EASE.elegant }}
+        transition={{ delay: 1.2, duration: DURATION.section, ease: EASE.elegant }}
         onClick={scrollDown}
         aria-label="Scroll down to explore"
       >

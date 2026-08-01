@@ -82,6 +82,9 @@ export function RulerCarousel({
   const [isResetting, setIsResetting] = useState(false);
   const previousIndexRef = useRef(activeIndex);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [isHovered, setIsHovered] = useState(false);
+
   const handleItemClick = (newIndex: number) => {
     if (isResetting) return;
     const targetOriginalIndex = newIndex % itemsPerSet;
@@ -116,14 +119,14 @@ export function RulerCarousel({
     setActiveIndex((prev) => prev + 1);
   };
 
-  // Auto loop left to right
+  // Auto loop left to right — paused on hover
   useEffect(() => {
-    if (!autoLoop || isResetting) return;
+    if (!autoLoop || isResetting || isHovered) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => prev + 1);
     }, 3000);
     return () => clearInterval(interval);
-  }, [autoLoop, isResetting]);
+  }, [autoLoop, isResetting, isHovered]);
 
   // Handle infinite scrolling reset
   useEffect(() => {
@@ -153,7 +156,11 @@ export function RulerCarousel({
     }
   }, [isResetting]);
 
+  // Scoped keyboard navigation — only fires when container is focused
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isResetting) return;
       if (event.key === "ArrowLeft") {
@@ -164,8 +171,9 @@ export function RulerCarousel({
         setActiveIndex((prev) => prev + 1);
       }
     };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+
+    container.addEventListener("keydown", handleKeyDown);
+    return () => container.removeEventListener("keydown", handleKeyDown);
   }, [isResetting]);
 
   // Center target based on active index
@@ -178,7 +186,15 @@ export function RulerCarousel({
   const totalPages = itemsPerSet;
 
   return (
-    <div className="w-full flex flex-col items-center justify-center bg-transparent">
+    <div
+      ref={containerRef}
+      className="w-full flex flex-col items-center justify-center bg-transparent"
+      tabIndex={0}
+      role="region"
+      aria-label="Statistics carousel — use Arrow keys to navigate"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className="w-full py-8 flex flex-col justify-center relative overflow-hidden">
         <div className="flex items-center justify-center">
           <RulerLines top />
