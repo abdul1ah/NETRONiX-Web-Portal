@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { SmoothScroll } from "@/components/ui/smooth-scroll";
 import "./globals.css";
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
@@ -99,6 +100,8 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
+        {/* Lenis smooth scroll — mounts once at root, covers all pages */}
+        <SmoothScroll />
         {children}
       </body>
     </html>

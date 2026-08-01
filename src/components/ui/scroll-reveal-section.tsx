@@ -1,15 +1,14 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface ScrollRevealSectionProps {
   children: React.ReactNode;
   className?: string;
   /** Y distance in pixels the section starts below its natural position */
   distance?: number;
-  /** Fraction of the section that must be visible to trigger */
-  threshold?: number;
+  /** Fraction of the section visible before triggering (default 0.06 = 6%) */
+  amount?: number | "some" | "all";
   /** Extra delay in seconds before the animation begins */
   delay?: number;
 }
@@ -17,41 +16,32 @@ interface ScrollRevealSectionProps {
 /**
  * ScrollRevealSection
  *
- * Wraps a full page section in a smooth "pulled from beneath" entrance.
- * The section starts slightly below its natural position and at opacity 0,
- * then slides up and fades in as soon as it enters the viewport.
+ * Wraps a full page section with a "pulled from beneath" entrance.
+ * Uses Framer Motion's whileInView + viewport API — SSR-safe, no
+ * useInView hook needed, no hydration flash.
  *
- * Applied to every section from Events downward so the page feels alive
- * and cinematic while scrolling.
- *
- * - Uses Framer Motion's useInView with `once: true` so the animation
- *   only fires once per session (no re-trigger on scroll-back).
- * - Automatically respects `prefers-reduced-motion` via Framer Motion.
+ * - Sections start 60px below at opacity 0
+ * - Slide up and fade in with expo-out easing as they enter the viewport
+ * - once:true so animation fires only on first entry
+ * - Automatically respects prefers-reduced-motion via Framer Motion
  */
 export function ScrollRevealSection({
   children,
   className = "",
-  distance = 60,
-  threshold = 0.08,
+  distance = 64,
+  amount = 0.06,
   delay = 0,
 }: ScrollRevealSectionProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, amount: threshold });
-
   return (
     <motion.div
-      ref={ref}
       className={className}
       initial={{ opacity: 0, y: distance }}
-      animate={
-        isInView
-          ? { opacity: 1, y: 0 }
-          : { opacity: 0, y: distance }
-      }
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount }}
       transition={{
-        duration: 0.8,
+        duration: 0.9,
         delay,
-        ease: [0.22, 1, 0.36, 1], // expo-out — fast rise, soft landing
+        ease: [0.22, 1, 0.36, 1], // expo-out: fast lift, feather-soft landing
       }}
     >
       {children}

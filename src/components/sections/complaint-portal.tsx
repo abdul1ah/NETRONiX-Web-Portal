@@ -12,6 +12,7 @@ import {
   type ComplaintPayload,
   type ComplaintStatus,
 } from "@/lib/api/complaints";
+import { uiSounds } from "@/lib/audio";
 
 // ─── Schema ──────────────────────────────────────────────────────────────────
 
@@ -301,6 +302,7 @@ export function ComplaintPortal() {
                   <motion.button
                     type="submit"
                     disabled={isTracking}
+                    onClick={uiSounds.playClick}
                     className="px-6 py-3 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-50 shrink-0"
                     style={{ backgroundColor: "#E11D2E" }}
                     whileHover={{ backgroundColor: "#FF3B4D", scale: 1.02 }}
@@ -393,7 +395,7 @@ export function ComplaintPortal() {
 
                 <button
                   type="button"
-                  onClick={() => { setSubmitted(false); setComplaintId(null); setCurrentStatus("reported"); }}
+                  onClick={() => { uiSounds.playClick(); setSubmitted(false); setComplaintId(null); setCurrentStatus("reported"); }}
                   className="text-sm underline text-left"
                   style={{ color: "#B3B3B3" }}
                 >
@@ -498,6 +500,7 @@ export function ComplaintPortal() {
                   <motion.button
                     type="submit"
                     disabled={isSubmitting}
+                    onClick={uiSounds.playClick}
                     className="px-8 py-3 rounded-full text-sm font-semibold text-white transition-all disabled:opacity-50"
                     style={{ backgroundColor: "#E11D2E" }}
                     whileHover={{ backgroundColor: "#FF3B4D", scale: 1.02 }}

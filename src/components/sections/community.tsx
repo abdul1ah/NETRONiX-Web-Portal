@@ -3,7 +3,6 @@
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
 import TextAnimation from "@/components/ui/staggerText";
 import { CylinderCarousel } from "@/components/ui/cylinder-carousel";
-import { motion } from "framer-motion";
 import Image from "next/image";
 
 // Each cell in the asymmetric grid

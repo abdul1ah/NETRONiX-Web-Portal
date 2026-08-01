@@ -3,6 +3,16 @@
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
 import { motion } from "framer-motion";
 
+// Use Lenis if available, fall back to native smooth scroll
+function scrollTo(id: string) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const lenis = (window as unknown as Record<string, unknown>).__lenis as
+    | { scrollTo: (target: HTMLElement, opts: { offset: number; duration: number }) => void }
+    | undefined;
+  if (lenis) lenis.scrollTo(el, { offset: 0, duration: 1.4 });
+  else el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
 
 export function Join() {
   return (
@@ -33,7 +43,7 @@ export function Join() {
               letterSpacing: "-0.03em",
             }}
           >
-            Join the Team Behind GIKI's
+            Join the Team Behind GIKI&apos;s
             <br />
             <span style={{ color: "#E11D2E" }}>Digital Infrastructure</span>
           </h2>
@@ -47,7 +57,7 @@ export function Join() {
               href="#portal"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById("portal")?.scrollIntoView({ behavior: "smooth" });
+                scrollTo("portal");
               }}
               className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-semibold"
               style={{ backgroundColor: "#E11D2E", color: "#FFFFFF" }}
@@ -70,7 +80,7 @@ export function Join() {
               href="#events"
               onClick={(e) => {
                 e.preventDefault();
-                document.getElementById("events")?.scrollIntoView({ behavior: "smooth" });
+                scrollTo("events");
               }}
               className="group inline-flex items-center gap-2 px-8 py-4 rounded-full text-sm font-semibold border"
               style={{

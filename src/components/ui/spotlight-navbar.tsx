@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { animate } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { uiSounds } from "@/lib/audio";
 
 export interface NavItem {
     label: string;
@@ -37,7 +38,6 @@ export function SpotlightNavbar({
     const navRef = useRef<HTMLDivElement>(null);
     const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
     const [hoverX, setHoverX] = useState<number | null>(null);
-    const [isDark, setIsDark] = useState(false);
 
     // Controlled takes priority; fall back to internal (click-based) state
     // -1 means no section is active (above all sections) — show nothing
@@ -46,16 +46,6 @@ export function SpotlightNavbar({
     // Refs for the "light" positions so we can animate them imperatively
     const spotlightX = useRef(0);
     const ambienceX = useRef(0);
-
-    useEffect(() => {
-        const checkTheme = () => {
-            setIsDark(document.documentElement.classList.contains('dark'));
-        };
-        checkTheme();
-        const observer = new MutationObserver(checkTheme);
-        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-        return () => observer.disconnect();
-    }, []);
 
     useEffect(() => {
         if (!navRef.current) return;
@@ -124,6 +114,7 @@ export function SpotlightNavbar({
     }, [activeIndex]);
 
     const handleItemClick = (item: NavItem, index: number) => {
+        uiSounds.playClick();
         setInternalIndex(index);
         onItemClick?.(item, index);
     };
@@ -147,6 +138,7 @@ export function SpotlightNavbar({
                             <a
                                 href={item.href}
                                 data-index={idx}
+                                onMouseEnter={uiSounds.playHover}
                                 onClick={(e) => {
                                     e.preventDefault();
                                     handleItemClick(item, idx);

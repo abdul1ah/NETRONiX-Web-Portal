@@ -18,16 +18,6 @@ export function CinematicBridge() {
 
   const [videoFaded,  setVideoFaded]  = useState(false);
   const [logoVisible, setLogoVisible] = useState(false);
-  const [collapsing,  setCollapsing]  = useState(false); // fading out
-  const [done,        setDone]        = useState(false);  // fully collapsed
-
-  // ── Graceful close: fade section content then collapse height ────────────
-  const closeBridge = useCallback(() => {
-    if (collapsing || done) return;
-    setCollapsing(true);
-    // After the fade-out transition (700ms), collapse height
-    setTimeout(() => setDone(true), 700);
-  }, [collapsing, done]);
 
   // ── Step 1: IntersectionObserver — trigger playback once ─────────────────
   useEffect(() => {
@@ -46,7 +36,6 @@ export function CinematicBridge() {
         fallbackTimer = setTimeout(() => {
           if (!playedRef.current) {
             playedRef.current = true;
-            closeBridge();
           }
         }, 3000);
 
@@ -62,7 +51,6 @@ export function CinematicBridge() {
           .catch(() => {
             playedRef.current = true;
             if (fallbackTimer) clearTimeout(fallbackTimer);
-            closeBridge();
           });
 
         observer.disconnect();
@@ -75,7 +63,7 @@ export function CinematicBridge() {
       observer.disconnect();
       if (fallbackTimer) clearTimeout(fallbackTimer);
     };
-  }, [closeBridge]);
+  }, []);
 
   // ── Step 2: Show logo overlay near the end of the video ──────────────────
   const handleTimeUpdate = useCallback(() => {
@@ -86,20 +74,6 @@ export function CinematicBridge() {
     }
   }, [logoVisible]);
 
-  // Safety net: cap total wait to 8 s after video starts
-  useEffect(() => {
-    if (!videoFaded) return;
-    const maxWait = setTimeout(() => {
-      if (!done) closeBridge();
-    }, 8000);
-    return () => clearTimeout(maxWait);
-  }, [videoFaded, done, closeBridge]);
-
-  // ── Step 3: Video ended — wait a beat then close ─────────────────────────
-  const handleEnded = useCallback(() => {
-    setTimeout(closeBridge, 800);
-  }, [closeBridge]);
-
   return (
     <section
       ref={sectionRef}
@@ -107,15 +81,8 @@ export function CinematicBridge() {
       aria-hidden="true"
       className="relative w-full overflow-hidden"
       style={{
-        // Smooth height collapse — no layout jump, no scroll teleport
-        height:     done ? 0 : "48vh",
-        minHeight:  done ? 0 : "320px",
-        opacity:    collapsing ? 0 : 1,
-        transition: collapsing
-          ? "opacity 700ms ease-in-out"
-          : done
-          ? "height 500ms cubic-bezier(0.4,0,0.2,1), min-height 500ms cubic-bezier(0.4,0,0.2,1)"
-          : undefined,
+        height: "48vh",
+        minHeight: "320px",
         pointerEvents: "none",
       }}
     >
@@ -132,13 +99,13 @@ export function CinematicBridge() {
         muted
         playsInline
         preload="auto"
+        poster="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
         className="absolute inset-0 w-full h-full object-cover"
-        style={{ zIndex: 1 }}
+        style={{ zIndex: 1, backgroundColor: "#050505" }}
         initial={{ opacity: 0 }}
         animate={{ opacity: videoFaded ? 1 : 0 }}
         transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
         onTimeUpdate={handleTimeUpdate}
-        onEnded={handleEnded}
       />
 
       {/* ── Top gradient — blends from hero's black bottom ────────────────── */}
@@ -163,7 +130,7 @@ export function CinematicBridge() {
 
       {/* ── NETRONiX Logo Overlay ─────────────────────────────────────────── */}
       <AnimatePresence>
-        {logoVisible && !collapsing && (
+        {logoVisible && (
           <motion.div
             key="logo-overlay"
             className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"
@@ -228,7 +195,7 @@ export function CinematicBridge() {
                 textShadow:    "0 2px 10px rgba(0,0,0,0.8)",
               }}
             >
-              Powering GIKI's Digital Infrastructure
+              Powering GIKI&apos;s Digital Infrastructure
             </motion.p>
           </motion.div>
         )}

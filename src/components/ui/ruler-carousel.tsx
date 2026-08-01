@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Rewind, FastForward } from "lucide-react";
 
 export interface CarouselItem {
   id: string | number;
@@ -109,28 +108,20 @@ export function RulerCarousel({
     setActiveIndex(closestIndex);
   };
 
-  const handlePrevious = () => {
-    if (isResetting) return;
-    setActiveIndex((prev) => prev - 1);
-  };
-
-  const handleNext = () => {
-    if (isResetting) return;
-    setActiveIndex((prev) => prev + 1);
-  };
-
   // Auto loop left to right — paused on hover
   useEffect(() => {
     if (!autoLoop || isResetting || isHovered) return;
     const interval = setInterval(() => {
       setActiveIndex((prev) => prev + 1);
     }, 3000);
+
     return () => clearInterval(interval);
   }, [autoLoop, isResetting, isHovered]);
 
   // Handle infinite scrolling reset
   useEffect(() => {
     if (activeIndex < itemsPerSet) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsResetting(true);
       setActiveIndex((prev) => prev + itemsPerSet);
     } else if (activeIndex >= itemsPerSet * 2) {
@@ -142,17 +133,13 @@ export function RulerCarousel({
   // Turn off resetting flag after the instant jump has been rendered
   useEffect(() => {
     if (isResetting) {
-      let raf1: number;
-      let raf2: number;
-      raf1 = requestAnimationFrame(() => {
-        raf2 = requestAnimationFrame(() => {
+      const raf1 = requestAnimationFrame(() => {
+        const raf2 = requestAnimationFrame(() => {
           setIsResetting(false);
         });
+        return () => cancelAnimationFrame(raf2);
       });
-      return () => {
-        cancelAnimationFrame(raf1);
-        cancelAnimationFrame(raf2);
-      };
+      return () => cancelAnimationFrame(raf1);
     }
   }, [isResetting]);
 
@@ -181,9 +168,6 @@ export function RulerCarousel({
   const itemWidth = 400; 
   // Track is positioned at left-1/2. We shift it left by the active item's center position.
   const targetX = -(activeIndex * itemWidth + 175);
-
-  const currentPage = (activeIndex % itemsPerSet) + 1;
-  const totalPages = itemsPerSet;
 
   return (
     <div

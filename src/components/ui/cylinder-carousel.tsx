@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { cn } from "@/lib/utils";
 
 export interface CylinderCarouselProps extends React.HTMLAttributes<HTMLDivElement> {

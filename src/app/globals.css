@@ -70,7 +70,7 @@
     color: #FFFFFF;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth removed — Lenis handles all scroll momentum */
   }
 
   body {

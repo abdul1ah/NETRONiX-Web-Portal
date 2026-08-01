@@ -106,7 +106,7 @@ export function Events() {
             style={{ color: "#666666" }}
           >
             From annual gaming tournaments to hackathons — NETRONiX builds
-            GIKI's most memorable experiences.
+            GIKI&apos;s most memorable experiences.
           </p>
         </SectionItem>
 
