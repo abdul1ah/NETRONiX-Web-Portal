@@ -7,25 +7,20 @@ import { heroRevealVariant, staggerContainerVariant, DURATION, EASE } from "@/li
 export function Hero() {
   const videoRef   = useRef<HTMLVideoElement>(null);
   const [videoReady, setVideoReady] = useState(false);
-  const [firstPlayDone, setFirstPlayDone] = useState(false);
-
-  // After first playback completes → enable seamless loop
-  const handleFirstEnded = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    setFirstPlayDone(true);
-    video.loop = true;
-    video.play().catch(() => {});
-  };
 
   useEffect(() => {
     const video = videoRef.current;
+
+    // Show the scroll indicator regardless of whether the video plays,
+    // fails to load, or autoplay is blocked — never let it hinge on
+    // video playback succeeding.
+    setVideoReady(true);
+
     if (!video) return;
 
     // Safari requires direct play() call
     video.play().catch(() => {
-      // Autoplay blocked — still show content
-      setVideoReady(true);
+      // Autoplay blocked — content is still shown via setVideoReady above
     });
   }, []);
 
@@ -46,11 +41,11 @@ export function Hero() {
         ref={videoRef}
         src="/assets/videos/hero-network-awakens.mp4"
         autoPlay
+        loop
         muted
         playsInline
         preload="auto"
         className="absolute inset-0 w-full h-full object-cover"
-        onEnded={handleFirstEnded}
         aria-hidden="true"
       />
 

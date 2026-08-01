@@ -27,12 +27,32 @@ export function CinematicBridge() {
     const el = sectionRef.current;
     if (!el) return;
 
+    // Hard safety net: no matter what happens with the video (slow network,
+    // stalled buffering, autoplay quirks, a long/undecoded file, etc.) this
+    // section must NEVER hold the page hostage for more than a few seconds.
+    // Without this, a slow-loading video on a real network (unlike localhost)
+    // can leave a full-viewport, non-interactive dead zone that makes
+    // scrolling feel completely broken.
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
     const observer = new IntersectionObserver(
       (entries) => {
         if (!entries[0].isIntersecting || playedRef.current) return;
 
         const video = videoRef.current;
-        if (!video) return;
+
+        // Always arm the fallback the moment this section becomes visible,
+        // regardless of whether the video element or play() call succeeds.
+        fallbackTimer = setTimeout(() => {
+          if (!playedRef.current) {
+            playedRef.current = true;
+            skipToAbout();
+          }
+        }, 3500);
+
+        if (!video) {
+          return;
+        }
 
         // Start loading the video ONLY when the user scrolls near this section
         video.src = "/assets/videos/hero-signal-logo-transition.mp4";
@@ -42,19 +62,25 @@ export function CinematicBridge() {
           .play()
           .then(() => {
             playedRef.current = true;
+            if (fallbackTimer) clearTimeout(fallbackTimer);
             setVideoFaded(true);
           })
           .catch(() => {
+            playedRef.current = true;
+            if (fallbackTimer) clearTimeout(fallbackTimer);
             skipToAbout();
           });
 
         observer.disconnect();
       },
-      { threshold: 0.1 } 
+      { threshold: 0.1, rootMargin: "600px 0px 600px 0px" } 
     );
 
     observer.observe(el);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
   }, []); 
 
   // ── Step 2: Show logo near the end of the video ────────────────────────
@@ -65,6 +91,19 @@ export function CinematicBridge() {
       setLogoVisible(true);
     }
   }, [logoVisible]);
+
+  // Safety net: once the video has started playing, cap the total time
+  // we'll wait for it to finish. If it stalls or buffers mid-playback
+  // (common on real networks), we still move on rather than blocking scroll.
+  useEffect(() => {
+    if (!videoFaded) return;
+    const maxWaitTimer = setTimeout(() => {
+      if (!done) skipToAbout();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, 8000);
+    return () => clearTimeout(maxWaitTimer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videoFaded]);
 
   // ── Step 3: Transition to About ─────────────────────────────────────────
   const skipToAbout = useCallback(() => {
