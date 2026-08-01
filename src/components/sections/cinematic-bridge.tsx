@@ -55,7 +55,7 @@ export function CinematicBridge() {
 
         observer.disconnect();
       },
-      { threshold: 0.15, rootMargin: "200px 0px 200px 0px" }
+      { threshold: 0.35, rootMargin: "0px 0px -10% 0px" }
     );
 
     observer.observe(el);
