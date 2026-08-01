@@ -14,6 +14,7 @@ export interface SpotlightNavbarProps {
     className?: string;
     onItemClick?: (item: NavItem, index: number) => void;
     defaultActiveIndex?: number;
+    activeIndex?: number;        // controlled prop — driven by IntersectionObserver
     leftContent?: React.ReactNode;
     rightContent?: React.ReactNode;
 }
@@ -29,13 +30,18 @@ export function SpotlightNavbar({
     className,
     onItemClick,
     defaultActiveIndex = 0,
+    activeIndex: controlledIndex,   // from Nav's IntersectionObserver
     leftContent,
     rightContent,
 }: SpotlightNavbarProps) {
     const navRef = useRef<HTMLDivElement>(null);
-    const [activeIndex, setActiveIndex] = useState(defaultActiveIndex);
+    const [internalIndex, setInternalIndex] = useState(defaultActiveIndex);
     const [hoverX, setHoverX] = useState<number | null>(null);
     const [isDark, setIsDark] = useState(false);
+
+    // Controlled takes priority; fall back to internal (click-based) state
+    // -1 means no section is active (above all sections) — show nothing
+    const activeIndex = controlledIndex !== undefined ? controlledIndex : internalIndex;
 
     // Refs for the "light" positions so we can animate them imperatively
     const spotlightX = useRef(0);
@@ -118,7 +124,7 @@ export function SpotlightNavbar({
     }, [activeIndex]);
 
     const handleItemClick = (item: NavItem, index: number) => {
-        setActiveIndex(index);
+        setInternalIndex(index);
         onItemClick?.(item, index);
     };
 
@@ -184,8 +190,9 @@ export function SpotlightNavbar({
 
                 {/* 2. The Active State Ambience (Stays on Active) */}
                 <div
-                    className="pointer-events-none absolute bottom-0 left-0 w-full h-[2px] z-[2]"
+                    className="pointer-events-none absolute bottom-0 left-0 w-full h-[2px] z-[2] transition-opacity duration-300"
                     style={{
+                        opacity: activeIndex >= 0 ? 1 : 0,
                         background: `
                   radial-gradient(
                     60px circle at var(--ambience-x) 0%, 

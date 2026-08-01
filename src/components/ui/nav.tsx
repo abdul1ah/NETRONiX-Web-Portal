@@ -17,9 +17,12 @@ const NAV_LINKS = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function Nav() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState("");
+  const [mobileOpen,     setMobileOpen]     = useState(false);
+  const [activeSection,  setActiveSection]  = useState("");
   const { scrollY } = useScroll();
+
+  // Derive the SpotlightNavbar index from the observed active section
+  const activeIndex = NAV_LINKS.findIndex((l) => l.href === `#${activeSection}`);
 
   // Pill shrinks and darkens slightly on scroll
   const pillPadding = useTransform(scrollY, [0, 80], ["0.75rem 1.5rem", "0.5rem 1.25rem"]);
@@ -53,6 +56,8 @@ export function Nav() {
   const scrollTo = (href: string) => {
     setMobileOpen(false);
     const id = href.replace("#", "");
+    // Optimistically update the highlight immediately (don't wait for Observer)
+    setActiveSection(id);
     const el = document.getElementById(id);
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -70,6 +75,7 @@ export function Nav() {
         <SpotlightNavbar
           items={[...NAV_LINKS]}
           className="glass rounded-full"
+          activeIndex={activeIndex}
           leftContent={
             <a
               href="#"
