@@ -1,135 +1,120 @@
+import "server-only";
+
+/**
+ * Admin portal authentication.
+ *
+ * Username + bcrypt password, verified against public.admin_users, then a
+ * signed JWT held in an HttpOnly cookie. `jose` is used rather than a Node-only
+ * JWT library because proxy.ts runs on the Edge runtime and must verify the
+ * same token.
+ */
+
 import { SignJWT, jwtVerify } from "jose";
-import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
-import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { Role } from "@prisma/client";
 
-export const ADMIN_COOKIE_NAME = "netronix_admin_token";
-const JWT_SECRET = process.env.ADMIN_JWT_SECRET || "netronix-super-secure-admin-secret-replace-in-env";
-const SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
+export const SESSION_COOKIE = "netronix_admin_session";
 
-export interface AdminJWTPayload {
-  sub: string; // admin user ID
-  email: string;
-  name: string;
-  role: Role;
+export interface AdminSession {
+  /** admin_users.id */
+  sub: string;
+  username: string;
+  displayName: string | null;
 }
 
-export interface AuthenticatedAdmin {
-  id: string;
-  email: string;
-  name: string;
-  role: Role;
+function sessionSecret(): Uint8Array {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+
+  if (!secret || secret.length < 32) {
+    throw new Error(
+      "ADMIN_SESSION_SECRET is missing or too short. Set at least 32 characters " +
+        "in .env.local — generate one with:\n" +
+        '  node -e "console.log(require(\'crypto\').randomBytes(48).toString(\'base64url\'))"'
+    );
+  }
+
+  return new TextEncoder().encode(secret);
 }
 
-/**
- * Hash a plain text password with salt rounds = 12
- */
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 12);
+function sessionHours(): number {
+  const raw = Number(process.env.ADMIN_SESSION_HOURS);
+  return Number.isFinite(raw) && raw > 0 ? raw : 12;
 }
 
-/**
- * Compare plain text password with bcrypt hash
- */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
+/** True when the server has what it needs to sign sessions. */
+export function isAuthConfigured(): boolean {
+  const secret = process.env.ADMIN_SESSION_SECRET;
+  return Boolean(secret && secret.length >= 32);
 }
 
-/**
- * Generate a signed JWT session token valid for 7 days
- */
-export async function createSessionToken(user: {
-  id: string;
-  email: string;
-  name: string;
-  role: Role;
-}): Promise<string> {
+// ─── Token ───────────────────────────────────────────────────────────────────
+
+export async function createSessionToken(
+  session: AdminSession
+): Promise<string> {
   return new SignJWT({
-    sub: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
+    username: session.username,
+    displayName: session.displayName,
   })
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject(session.sub)
     .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(SECRET_KEY);
+    .setExpirationTime(`${sessionHours()}h`)
+    .sign(sessionSecret());
 }
 
-/**
- * Verify a JWT session token
- */
-export async function verifySessionToken(token: string): Promise<AdminJWTPayload | null> {
+/** Verify a token. Returns null on anything invalid or expired. */
+export async function verifySessionToken(
+  token: string | undefined
+): Promise<AdminSession | null> {
+  if (!token) return null;
+
   try {
-    const { payload } = await jwtVerify(token, SECRET_KEY, {
+    const { payload } = await jwtVerify(token, sessionSecret(), {
       algorithms: ["HS256"],
     });
-    return payload as unknown as AdminJWTPayload;
+
+    if (!payload.sub || typeof payload.username !== "string") return null;
+
+    return {
+      sub: payload.sub,
+      username: payload.username,
+      displayName:
+        typeof payload.displayName === "string" ? payload.displayName : null,
+    };
   } catch {
     return null;
   }
 }
 
-/**
- * Get authenticated admin from cookies or Authorization header.
- * Verifies existence and active status in PostgreSQL database.
- */
-export async function getAuthenticatedAdmin(
-  req?: NextRequest
-): Promise<AuthenticatedAdmin | null> {
-  try {
-    let token: string | undefined;
+// ─── Cookie helpers (Server Components / Route Handlers) ─────────────────────
 
-    if (req) {
-      token = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
-      if (!token) {
-        const authHeader = req.headers.get("authorization");
-        if (authHeader?.startsWith("Bearer ")) {
-          token = authHeader.substring(7);
-        }
-      }
-    } else {
-      const cookieStore = await cookies();
-      token = cookieStore.get(ADMIN_COOKIE_NAME)?.value;
-    }
+export async function setSessionCookie(token: string): Promise<void> {
+  const cookieStore = await cookies();
 
-    if (!token) return null;
+  cookieStore.set(SESSION_COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: sessionHours() * 60 * 60,
+  });
+}
 
-    const payload = await verifySessionToken(token);
-    if (!payload?.sub) return null;
+export async function clearSessionCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(SESSION_COOKIE);
+}
 
-    // Verify user exists and isActive in DB
-    const admin = await prisma.adminUser.findUnique({
-      where: { id: payload.sub },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        isActive: true,
-      },
-    });
-
-    if (!admin || !admin.isActive) return null;
-
-    return {
-      id: admin.id,
-      email: admin.email,
-      name: admin.name,
-      role: admin.role,
-    };
-  } catch (error) {
-    console.error("Authentication verification error:", error);
-    return null;
-  }
+/** The currently logged-in admin, or null. */
+export async function getSession(): Promise<AdminSession | null> {
+  const cookieStore = await cookies();
+  return verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value);
 }
 
 /**
- * RBAC Helper: Verify user has required role
+ * Guard for admin API routes. Returns the session, or null if the caller is
+ * not authenticated — route handlers turn that into a 401.
  */
-export function hasRequiredRole(adminRole: Role, requiredRole: Role): boolean {
-  if (adminRole === "ADMIN") return true; // ADMIN has all permissions
-  return adminRole === requiredRole;
+export async function requireSession(): Promise<AdminSession | null> {
+  return getSession();
 }

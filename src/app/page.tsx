@@ -10,6 +10,10 @@ import { Footer } from "@/components/sections/footer";
 import { ScrollRevealSection } from "@/components/ui/scroll-reveal-section";
 import { NeuralNoise } from "@/components/ui/neural-noise";
 
+// Events are read from Supabase per request, so an admin flipping an event to
+// Live Now shows up on the next page load rather than at the next deploy.
+export const dynamic = "force-dynamic";
+
 export default function HomePage() {
   return (
     <>
