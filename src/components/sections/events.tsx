@@ -1,75 +1,28 @@
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
 import { EventCard } from "@/components/ui/event-card";
-import type { EventStatus } from "@/components/ui/event-card";
+import { getPublicEvents } from "@/lib/events-data";
+import {
+  effectiveStatus,
+  isRegistrationOpen,
+  registrationHref,
+} from "@/lib/events";
 
-interface EventData {
-  title:         string;
-  subtitle?:     string;
-  description:   string;
-  status:        EventStatus;
-  accentColor:   string;
-  imagePlaceholder: string;
-  imageSrc?:     string;
-  registerHref?: string;
-  large?:        boolean;
-}
+/**
+ * Events are now driven by the `events` table in Supabase. Flip an event to
+ * "Live Now" in /admin/portal and its card here turns into a working Register
+ * button pointing at that event's registration form.
+ *
+ * Server Component — the fetch happens on the server on every request, so a
+ * status change in the portal shows up on the next page load. The homepage
+ * opts out of static rendering for this reason (see src/app/page.tsx).
+ */
 
-const EVENTS: EventData[] = [
-  {
-    title:       "UGX — Uber.Game X",
-    subtitle:    "Annual Gaming Event",
-    description:
-      "Pakistan's largest university gaming tournament. Featuring CS:GO, FIFA, Valorant, and more across two unforgettable days at GIKI.",
-    status:      "upcoming",
-    accentColor: "#0D0D12",
-    imagePlaceholder: "UGX",
-    imageSrc: "/events/UGX_v2.jpeg",
-    large:       true,
-  },
-  {
-    title:       "Hack n Connect",
-    subtitle:    "Hackathon",
-    description:
-      "A 24-hour hackathon challenging students to build innovative solutions to real-world networking and infrastructure problems.",
-    status:      "upcoming",
-    accentColor: "#0D120D",
-    imagePlaceholder: "H&C",
-    imageSrc: "/events/HNC_v2.jpeg",
-  },
-  {
-    title:       "Inductions",
-    subtitle:    "Society Recruitment",
-    description:
-      "Join NETRONiX. Open inductions for engineers, developers, event coordinators, and creative minds.",
-    status:      "live",
-    accentColor: "#120D0D",
-    imagePlaceholder: "IND",
-    imageSrc: "/events/Inductions.jpeg",
-  },
-  {
-    title:       "Volunteer Call",
-    subtitle:    "Open Call",
-    description:
-      "Help us run the largest events at GIKI. Volunteer for UGX, Hack n Connect, and SNP as crew, logistics, or tech support.",
-    status:      "upcoming",
-    accentColor: "#0D0D0D",
-    imagePlaceholder: "VOL",
-    imageSrc: "/events/Volcall.jpeg",
-  },
-  {
-    title:       "SNP",
-    subtitle:    "Society Night & Party",
-    description:
-      "NETRONiX's annual celebration. Live performances, food, and the entire GIKI community together under one roof.",
-    status:      "past",
-    accentColor: "#0A0A0A",
-    imagePlaceholder: "SNP",
-    imageSrc: "/events/SNP.jpeg",
-  },
-];
+export async function Events() {
+  const events = await getPublicEvents();
 
-export function Events() {
-  const [ugx, ...rest] = EVENTS;
+  if (events.length === 0) return null;
+
+  const [featured, ...rest] = events;
 
   return (
     <section
@@ -114,21 +67,46 @@ export function Events() {
         <SectionItem>
           {/*
             Asymmetric layout:
-            - Desktop: UGX spans 2 rows on the left; 2×2 grid on right
+            - Desktop: featured event spans 2 rows on the left; 2×2 grid on right
             - Mobile: single column stack
           */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {/* Large UGX card — spans 2 rows on lg */}
+            {/* Large featured card — spans 2 rows on lg */}
             <div className="md:col-span-1 lg:row-span-2">
               <EventCard
-                {...ugx}
+                title={featured.title}
+                subtitle={featured.subtitle ?? undefined}
+                description={featured.description}
+                status={effectiveStatus(featured)}
+                accentColor={featured.accent_color}
+                imagePlaceholder={featured.image_placeholder ?? undefined}
+                imageSrc={featured.image_src ?? undefined}
+                registerHref={
+                  isRegistrationOpen(featured)
+                    ? registrationHref(featured.slug)
+                    : undefined
+                }
                 aspectClass="aspect-[4/3] lg:aspect-auto lg:min-h-[480px]"
               />
             </div>
 
-            {/* Remaining 4 cards in 2×2 */}
+            {/* Remaining cards in 2×2 */}
             {rest.map((event) => (
-              <EventCard key={event.title} {...event} />
+              <EventCard
+                key={event.id}
+                title={event.title}
+                subtitle={event.subtitle ?? undefined}
+                description={event.description}
+                status={effectiveStatus(event)}
+                accentColor={event.accent_color}
+                imagePlaceholder={event.image_placeholder ?? undefined}
+                imageSrc={event.image_src ?? undefined}
+                registerHref={
+                  isRegistrationOpen(event)
+                    ? registrationHref(event.slug)
+                    : undefined
+                }
+              />
             ))}
           </div>
         </SectionItem>

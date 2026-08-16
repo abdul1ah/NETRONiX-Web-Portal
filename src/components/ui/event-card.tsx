@@ -3,14 +3,23 @@
 import { motion } from "framer-motion";
 import { scaleInVariant, DURATION } from "@/lib/motion";
 import Image from "next/image";
+import Link from "next/link";
 
-export type EventStatus = "live" | "upcoming" | "past";
+/** next/link with framer-motion's hover/tap props, for client-side navigation. */
+const MotionLink = motion.create(Link);
+
+/** Mirrors the `event_status` enum in the database. */
+export type EventStatus = "live" | "coming_soon" | "past";
 
 interface EventCardProps {
   title: string;
   subtitle?: string;
   description: string;
   status: EventStatus;
+  /**
+   * Registration form URL. Passed only when the event is live and accepting
+   * registrations — otherwise the card falls back to a Coming Soon state.
+   */
   registerHref?: string;
   /** Optional aspect ratio class, defaults to "aspect-video" */
   aspectClass?: string;
@@ -23,9 +32,9 @@ interface EventCardProps {
 }
 
 const STATUS_CONFIG = {
-  live:     { label: "Live Now",  color: "#E11D2E", bg: "rgba(225,29,46,0.15)"  },
-  upcoming: { label: "Upcoming",  color: "#FFFFFF", bg: "rgba(255,255,255,0.08)" },
-  past:     { label: "Concluded", color: "#666666", bg: "rgba(255,255,255,0.05)" },
+  live:        { label: "Live Now",     color: "#E11D2E", bg: "rgba(225,29,46,0.15)"  },
+  coming_soon: { label: "Coming Soon",  color: "#FFFFFF", bg: "rgba(255,255,255,0.08)" },
+  past:        { label: "Concluded",    color: "#666666", bg: "rgba(255,255,255,0.05)" },
 } as const;
 
 export function EventCard({
@@ -33,7 +42,7 @@ export function EventCard({
   subtitle,
   description,
   status,
-  registerHref = "#",
+  registerHref,
   aspectClass = "aspect-video",
   accentColor = "#1A1A1A",
   imagePlaceholder,
@@ -119,29 +128,25 @@ export function EventCard({
           {description}
         </p>
 
-        {/* Register button — only shown when a real href exists */}
-        {registerHref && registerHref !== "#" ? (
-          <motion.a
+        {/* Register button — the caller passes a href only when the event is
+            live and its registration form is open. */}
+        {registerHref ? (
+          <MotionLink
             href={registerHref}
-            target="_blank"
-            rel="noopener noreferrer"
             className="mt-2 inline-flex items-center justify-center w-full py-2.5 px-4 rounded-lg text-sm font-medium border transition-all duration-[250ms]"
             style={{
-              borderColor: status === "past" ? "rgba(255,255,255,0.08)" : "rgba(225,29,46,0.4)",
-              color: status === "past" ? "#666666" : "#FFFFFF",
-              pointerEvents: status === "past" ? "none" : "auto",
+              borderColor: "rgba(225,29,46,0.4)",
+              color: "#FFFFFF",
             }}
-            whileHover={
-              status !== "past"
-                ? { backgroundColor: "rgba(225,29,46,0.12)", borderColor: "rgba(225,29,46,0.7)" }
-                : {}
-            }
-            whileTap={status !== "past" ? { scale: 0.98 } : {}}
-            aria-disabled={status === "past"}
-            aria-label={status === "past" ? `${title} — concluded` : `Register for ${title}`}
+            whileHover={{
+              backgroundColor: "rgba(225,29,46,0.12)",
+              borderColor: "rgba(225,29,46,0.7)",
+            }}
+            whileTap={{ scale: 0.98 }}
+            aria-label={`Register for ${title}`}
           >
-            {status === "past" ? "Concluded" : "Register →"}
-          </motion.a>
+            Register →
+          </MotionLink>
         ) : status === "past" ? (
           <div
             className="mt-2 w-full py-2.5 px-4 rounded-lg text-sm font-medium text-center"
