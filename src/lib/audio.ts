@@ -6,7 +6,9 @@ class SoundEngine {
 
   private init() {
     if (!this.ctx && typeof window !== "undefined") {
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioCtx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
       }
@@ -19,7 +21,7 @@ class SoundEngine {
     try {
       this.init();
       if (!this.ctx) return;
-      
+
       // Resume context if suspended (browser auto-play policy)
       if (this.ctx.state === "suspended") {
         this.ctx.resume().catch(() => {});
@@ -41,7 +43,7 @@ class SoundEngine {
 
       osc.start();
       osc.stop(this.ctx.currentTime + 0.06);
-    } catch (e) {
+    } catch {
       // Safely ignore if audio fails
     }
   };
@@ -52,7 +54,7 @@ class SoundEngine {
     try {
       this.init();
       if (!this.ctx) return;
-      
+
       if (this.ctx.state === "suspended") {
         this.ctx.resume().catch(() => {});
       }
@@ -72,7 +74,7 @@ class SoundEngine {
 
       osc.start();
       osc.stop(this.ctx.currentTime + 0.08);
-    } catch (e) {
+    } catch {
       // Safely ignore
     }
   };

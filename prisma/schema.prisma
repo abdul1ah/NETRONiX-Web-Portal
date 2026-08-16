@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  MANAGER
+}
+
+enum IssueType {
+  NETWORK
+  WIFI
+  LAN
+  OTHER
+}
+
+enum ComplaintStatus {
+  REPORTED
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  REJECTED
+}
+
+model AdminUser {
+  id           String                   @id @default(uuid())
+  email        String                   @unique
+  passwordHash String
+  name         String
+  role         Role                     @default(MANAGER)
+  isActive     Boolean                  @default(true)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  assignedComplaints Complaint[]        @relation("AssignedComplaints")
+  statusHistory      ComplaintStatusHistory[] @relation("AdminStatusChanges")
+
+  @@map("admin_users")
+}
+
+model Complaint {
+  id            String                  @id @default(uuid())
+  ticketId      String                  @unique
+  name          String
+  email         String
+  location      String
+  issueType     IssueType
+  description   String
+  status        ComplaintStatus         @default(REPORTED)
+  adminResponse String?
+  assignedToId  String?
+  assignedTo    AdminUser?              @relation("AssignedComplaints", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  resolvedAt    DateTime?
+
+  history       ComplaintStatusHistory[]
+
+  @@index([ticketId, email])
+  @@index([status])
+  @@index([createdAt])
+  @@index([assignedToId])
+  @@map("complaints")
+}
+
+model ComplaintStatusHistory {
+  id             String          @id @default(uuid())
+  complaintId    String
+  complaint      Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  changedById    String?
+  changedBy      AdminUser?      @relation("AdminStatusChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  previousStatus ComplaintStatus?
+  newStatus      ComplaintStatus
+  notes          String?
+  createdAt      DateTime        @default(now())
+
+  @@index([complaintId])
+  @@index([createdAt])
+  @@map("complaint_status_history")
+}
