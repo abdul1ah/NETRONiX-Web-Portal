@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
 import { skillLabel } from "@/lib/events";
-import type { RegistrationRow } from "@/lib/supabase/types";
+import type { Registration } from "@prisma/client";
 
 /**
  * GET /api/admin/registrations/export?eventId=...
  *
  * Downloads one event's submissions as CSV — the handoff format for
- * attendance sheets and, later, the mailing list.
+ * attendance sheets and mailing lists.
  */
 
 const COLUMNS = [
@@ -33,20 +33,20 @@ function csvCell(value: unknown): string {
   return `"${safe.replace(/"/g, '""')}"`;
 }
 
-function toCsvRow(reg: RegistrationRow): string {
+function toCsvRow(reg: Registration): string {
   return [
-    reg.created_at,
-    reg.full_name,
-    reg.registration_number,
+    reg.createdAt.toISOString(),
+    reg.fullName,
+    reg.registrationNumber,
     reg.batch,
     reg.email,
     reg.phone,
     reg.hostel,
     reg.skills.map(skillLabel).join("; "),
-    reg.other_skill,
-    reg.about_netronix,
+    reg.otherSkill,
+    reg.aboutNetronix,
     reg.status,
-    reg.admin_notes,
+    reg.adminNotes,
   ]
     .map(csvCell)
     .join(",");
@@ -63,39 +63,26 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "eventId is required" }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-
-  const { data: event } = await supabase
-    .from("events")
-    .select("slug")
-    .eq("id", eventId)
-    .maybeSingle();
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { slug: true },
+  });
 
   if (!event) {
     return NextResponse.json({ message: "Event not found" }, { status: 404 });
   }
 
-  const { data, error } = await supabase
-    .from("registrations")
-    .select("*")
-    .eq("event_id", eventId)
-    .order("created_at", { ascending: false });
+  const registrations = await prisma.registration.findMany({
+    where: { eventId },
+    orderBy: { createdAt: "desc" },
+  });
 
-  if (error) {
-    console.error("[admin export] fetch failed", error);
-    return NextResponse.json(
-      { message: "Could not build the export." },
-      { status: 500 }
-    );
-  }
-
-  const rows = (data ?? []) as RegistrationRow[];
-  const csv = [COLUMNS.map(csvCell).join(","), ...rows.map(toCsvRow)].join("\r\n");
+  const csv = [COLUMNS.map(csvCell).join(","), ...registrations.map(toCsvRow)].join("\r\n");
 
   // BOM so Excel opens UTF-8 names correctly.
   const filename = `netronix-${event.slug}-registrations.csv`;
 
-  return new NextResponse("﻿" + csv, {
+  return new NextResponse("\uFEFF" + csv, {
     status: 200,
     headers: {
       "Content-Type": "text/csv; charset=utf-8",

@@ -6,6 +6,96 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Admin Auth ──────────────────────────────────────────────────────────────
+
+model AdminUser {
+  id            String    @id @default(uuid())
+  username      String    @unique
+  passwordHash  String    @map("password_hash")
+  displayName   String?   @map("display_name")
+  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  assignedComplaints Complaint[]              @relation("AssignedComplaints")
+  statusHistory      ComplaintStatusHistory[] @relation("AdminStatusChanges")
+  registrationNotes  Registration[]           @relation("AdminNotes")
+
+  @@map("admin_users")
+}
+
+// ─── Events & Registrations ──────────────────────────────────────────────────
+
+enum EventStatus {
+  coming_soon
+  live
+  past
+}
+
+enum RegistrationStatus {
+  pending
+  confirmed
+  waitlisted
+  rejected
+}
+
+model Event {
+  id                 String      @id @default(uuid())
+  slug               String      @unique
+  title              String
+  subtitle           String?
+  description        String      @default("")
+  imageSrc           String?     @map("image_src")
+  imagePlaceholder   String?     @map("image_placeholder")
+  accentColor        String      @default("#0D0D0D") @map("accent_color")
+  status             EventStatus @default(coming_soon)
+  autoLiveAt         DateTime?   @map("auto_live_at")
+  autoCloseAt        DateTime?   @map("auto_close_at")
+  registrationOpen   Boolean     @default(true) @map("registration_open")
+  maxRegistrations   Int?        @map("max_registrations")
+  formIntro          String?     @map("form_intro")
+  isFeatured         Boolean     @default(false) @map("is_featured")
+  sortOrder          Int         @default(100) @map("sort_order")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+
+  registrations      Registration[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([sortOrder])
+  @@map("events")
+}
+
+model Registration {
+  id                 String             @id @default(uuid())
+  eventId            String             @map("event_id")
+  event              Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fullName           String             @map("full_name")
+  registrationNumber String             @map("registration_number")
+  batch              Int
+  email              String
+  phone              String
+  hostel             String
+  aboutNetronix      String             @map("about_netronix")
+  skills             String[]
+  otherSkill         String?            @map("other_skill")
+  status             RegistrationStatus @default(pending)
+  adminNotes         String?            @map("admin_notes")
+  adminId            String?            @map("admin_id")
+  admin              AdminUser?         @relation("AdminNotes", fields: [adminId], references: [id], onDelete: SetNull)
+  emailSentAt        DateTime?          @map("email_sent_at")
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  @@unique([eventId, registrationNumber])
+  @@index([eventId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("registrations")
+}
+
+// ─── Complaints ──────────────────────────────────────────────────────────────
+
 enum Role {
   ADMIN
   MANAGER
@@ -26,37 +116,21 @@ enum ComplaintStatus {
   REJECTED
 }
 
-model AdminUser {
-  id           String                   @id @default(uuid())
-  email        String                   @unique
-  passwordHash String
-  name         String
-  role         Role                     @default(MANAGER)
-  isActive     Boolean                  @default(true)
-  createdAt    DateTime                 @default(now())
-  updatedAt    DateTime                 @updatedAt
-
-  assignedComplaints Complaint[]        @relation("AssignedComplaints")
-  statusHistory      ComplaintStatusHistory[] @relation("AdminStatusChanges")
-
-  @@map("admin_users")
-}
-
 model Complaint {
-  id            String                  @id @default(uuid())
-  ticketId      String                  @unique
+  id            String          @id @default(uuid())
+  ticketId      String          @unique @map("ticket_id")
   name          String
   email         String
   location      String
-  issueType     IssueType
+  issueType     IssueType       @map("issue_type")
   description   String
-  status        ComplaintStatus         @default(REPORTED)
-  adminResponse String?
-  assignedToId  String?
-  assignedTo    AdminUser?              @relation("AssignedComplaints", fields: [assignedToId], references: [id], onDelete: SetNull)
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  resolvedAt    DateTime?
+  status        ComplaintStatus @default(REPORTED)
+  adminResponse String?         @map("admin_response")
+  assignedToId  String?         @map("assigned_to_id")
+  assignedTo    AdminUser?      @relation("AssignedComplaints", fields: [assignedToId], references: [id], onDelete: SetNull)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  resolvedAt    DateTime?       @map("resolved_at")
 
   history       ComplaintStatusHistory[]
 
@@ -68,15 +142,15 @@ model Complaint {
 }
 
 model ComplaintStatusHistory {
-  id             String          @id @default(uuid())
-  complaintId    String
-  complaint      Complaint       @relation(fields: [complaintId], references: [id], onDelete: Cascade)
-  changedById    String?
-  changedBy      AdminUser?      @relation("AdminStatusChanges", fields: [changedById], references: [id], onDelete: SetNull)
-  previousStatus ComplaintStatus?
-  newStatus      ComplaintStatus
+  id             String           @id @default(uuid())
+  complaintId    String           @map("complaint_id")
+  complaint      Complaint        @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  changedById    String?          @map("changed_by_id")
+  changedBy      AdminUser?       @relation("AdminStatusChanges", fields: [changedById], references: [id], onDelete: SetNull)
+  previousStatus ComplaintStatus? @map("previous_status")
+  newStatus      ComplaintStatus  @map("new_status")
   notes          String?
-  createdAt      DateTime        @default(now())
+  createdAt      DateTime         @default(now()) @map("created_at")
 
   @@index([complaintId])
   @@index([createdAt])

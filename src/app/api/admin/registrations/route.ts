@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
+import { RegistrationStatus } from "@prisma/client";
 
 /**
  * GET   /api/admin/registrations?eventId=...&q=...&page=0
- * PATCH /api/admin/registrations   { id, status?, admin_notes? }
+ * PATCH /api/admin/registrations   { id, status?, adminNotes? }
  *
  * Submissions are always scoped to one event, which is what keeps the portal
  * unambiguous: you are never looking at two events' rows at once.
@@ -21,54 +22,43 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const eventId = searchParams.get("eventId");
-  const query   = searchParams.get("q")?.trim();
-  const page    = Math.max(0, Number(searchParams.get("page") ?? 0) || 0);
+  const query = searchParams.get("q")?.trim();
+  const page = Math.max(0, Number(searchParams.get("page") ?? 0) || 0);
 
   if (!eventId) {
     return NextResponse.json({ message: "eventId is required" }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
+  const where = {
+    eventId,
+    ...(query
+      ? {
+          OR: [
+            { fullName: { contains: query, mode: "insensitive" as const } },
+            { registrationNumber: { contains: query, mode: "insensitive" as const } },
+            { email: { contains: query, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+  };
 
-  let request = supabase
-    .from("registrations")
-    .select("*", { count: "exact" })
-    .eq("event_id", eventId);
+  const [registrations, total] = await Promise.all([
+    prisma.registration.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: page * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.registration.count({ where }),
+  ]);
 
-  if (query) {
-    // Escape PostgREST's or() delimiters so a stray comma cannot break out.
-    const safe = query.replace(/[,()]/g, " ");
-    request = request.or(
-      `full_name.ilike.%${safe}%,registration_number.ilike.%${safe}%,email.ilike.%${safe}%`
-    );
-  }
-
-  const { data, error, count } = await request
-    .order("created_at", { ascending: false })
-    .range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
-
-  if (error) {
-    console.error("[admin registrations] fetch failed", error);
-    return NextResponse.json(
-      { message: "Could not load submissions." },
-      { status: 500 }
-    );
-  }
-
-  return NextResponse.json({
-    registrations: data ?? [],
-    total: count ?? 0,
-    page,
-    pageSize: PAGE_SIZE,
-  });
+  return NextResponse.json({ registrations, total, page, pageSize: PAGE_SIZE });
 }
 
 const PatchSchema = z.object({
   id: z.string().uuid(),
-  status: z
-    .enum(["pending", "confirmed", "waitlisted", "rejected"])
-    .optional(),
-  admin_notes: z.string().trim().max(2000).nullable().optional(),
+  status: z.nativeEnum(RegistrationStatus).optional(),
+  adminNotes: z.string().trim().max(2000).nullable().optional(),
 });
 
 export async function PATCH(req: NextRequest) {
@@ -95,25 +85,13 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ message: "Nothing to update" }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("registrations")
-    .update(changes)
-    .eq("id", id)
-    .select("*")
-    .maybeSingle();
-
-  if (error) {
-    console.error("[admin registrations] update failed", error);
-    return NextResponse.json(
-      { message: "Could not save the change." },
-      { status: 500 }
-    );
-  }
-
-  if (!data) {
+  try {
+    const registration = await prisma.registration.update({
+      where: { id },
+      data: changes,
+    });
+    return NextResponse.json({ registration });
+  } catch {
     return NextResponse.json({ message: "Submission not found" }, { status: 404 });
   }
-
-  return NextResponse.json({ registration: data });
 }

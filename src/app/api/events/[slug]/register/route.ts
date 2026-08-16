@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createAdminClient, isAdminConfigured } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { RegistrationSchema } from "@/lib/validation/registration";
 import { isRegistrationOpen } from "@/lib/events";
 
@@ -15,13 +15,6 @@ export async function POST(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-
-  if (!isAdminConfigured()) {
-    return NextResponse.json(
-      { message: "Registrations are not available yet. Please try again later." },
-      { status: 503 }
-    );
-  }
 
   // ─── Parse and validate ───────────────────────────────────────────────────
   let body: unknown;
@@ -43,29 +36,26 @@ export async function POST(
   }
 
   const data = parsed.data;
-  const supabase = createAdminClient();
 
   // ─── Look up the event and confirm registration is genuinely open ─────────
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select(
-      "id, title, status, auto_live_at, auto_close_at, registration_open, max_registrations"
-    )
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (eventError) {
-    console.error("[register] event lookup failed", eventError);
-    return NextResponse.json(
-      { message: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
-  }
+  const event = await prisma.event.findUnique({
+    where: { slug },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      autoLiveAt: true,
+      autoCloseAt: true,
+      registrationOpen: true,
+      maxRegistrations: true,
+    },
+  });
 
   if (!event) {
     return NextResponse.json({ message: "Event not found" }, { status: 404 });
   }
 
+  // isRegistrationOpen maps the Prisma shape to what the helper expects
   if (!isRegistrationOpen(event)) {
     return NextResponse.json(
       { message: `Registration for ${event.title} is not open right now.` },
@@ -74,21 +64,12 @@ export async function POST(
   }
 
   // ─── Capacity check ───────────────────────────────────────────────────────
-  if (event.max_registrations !== null) {
-    const { count, error: countError } = await supabase
-      .from("registrations")
-      .select("id", { count: "exact", head: true })
-      .eq("event_id", event.id);
+  if (event.maxRegistrations !== null) {
+    const count = await prisma.registration.count({
+      where: { eventId: event.id },
+    });
 
-    if (countError) {
-      console.error("[register] capacity check failed", countError);
-      return NextResponse.json(
-        { message: "Something went wrong. Please try again." },
-        { status: 500 }
-      );
-    }
-
-    if ((count ?? 0) >= event.max_registrations) {
+    if (count >= event.maxRegistrations) {
       return NextResponse.json(
         { message: `${event.title} is full. Registration is now closed.` },
         { status: 409 }
@@ -97,26 +78,39 @@ export async function POST(
   }
 
   // ─── Insert ───────────────────────────────────────────────────────────────
-  const { data: inserted, error: insertError } = await supabase
-    .from("registrations")
-    .insert({
-      event_id:            event.id,
-      full_name:           data.fullName,
-      registration_number: data.registrationNumber.toUpperCase(),
-      batch:               Number(data.batch),
-      email:               data.email,
-      phone:               data.phone,
-      hostel:              data.hostel,
-      about_netronix:      data.aboutNetronix,
-      skills:              data.skills,
-      other_skill:         data.otherSkill?.trim() || null,
-    })
-    .select("id, created_at")
-    .single();
+  try {
+    const inserted = await prisma.registration.create({
+      data: {
+        eventId: event.id,
+        fullName: data.fullName,
+        registrationNumber: data.registrationNumber.toUpperCase(),
+        batch: Number(data.batch),
+        email: data.email,
+        phone: data.phone,
+        hostel: data.hostel,
+        aboutNetronix: data.aboutNetronix,
+        skills: data.skills,
+        otherSkill: data.otherSkill?.trim() || null,
+      },
+      select: { id: true, createdAt: true },
+    });
 
-  if (insertError) {
-    // 23505 = unique_violation on (event_id, registration_number)
-    if (insertError.code === "23505") {
+    return NextResponse.json(
+      {
+        id: inserted.id,
+        submittedAt: inserted.createdAt,
+        message: `You are registered for ${event.title}.`,
+      },
+      { status: 201 }
+    );
+  } catch (error: unknown) {
+    // P2002 = unique constraint violation on (eventId, registrationNumber)
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code: string }).code === "P2002"
+    ) {
       return NextResponse.json(
         {
           message:
@@ -126,19 +120,10 @@ export async function POST(
       );
     }
 
-    console.error("[register] insert failed", insertError);
+    console.error("[register] insert failed", error);
     return NextResponse.json(
       { message: "Could not save your registration. Please try again." },
       { status: 500 }
     );
   }
-
-  return NextResponse.json(
-    {
-      id: inserted.id,
-      submittedAt: inserted.created_at,
-      message: `You are registered for ${event.title}.`,
-    },
-    { status: 201 }
-  );
 }
