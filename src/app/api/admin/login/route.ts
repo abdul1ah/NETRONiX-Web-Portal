@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
-import { createAdminClient, isAdminConfigured } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import {
   createSessionToken,
   setSessionCookie,
@@ -18,11 +18,11 @@ const LoginSchema = z.object({
 
 /** POST /api/admin/login — username + password → session cookie. */
 export async function POST(req: NextRequest) {
-  if (!isAdminConfigured() || !isAuthConfigured()) {
+  if (!isAuthConfigured()) {
     return NextResponse.json(
       {
         message:
-          "Admin portal is not configured. Set SUPABASE_SERVICE_ROLE_KEY and ADMIN_SESSION_SECRET in .env.local.",
+          "Admin portal is not configured. Set ADMIN_SESSION_SECRET in .env.local.",
       },
       { status: 503 }
     );
@@ -44,26 +44,16 @@ export async function POST(req: NextRequest) {
   }
 
   const { username, password } = parsed.data;
-  const supabase = createAdminClient();
 
-  const { data: user, error } = await supabase
-    .from("admin_users")
-    .select("id, username, password_hash, display_name")
-    .eq("username", username)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[admin login] lookup failed", error);
-    return NextResponse.json(
-      { message: "Something went wrong. Please try again." },
-      { status: 500 }
-    );
-  }
+  const user = await prisma.adminUser.findUnique({
+    where: { username },
+    select: { id: true, username: true, passwordHash: true, displayName: true },
+  });
 
   // Compare against a dummy hash when the user does not exist, so the response
   // takes the same time either way and cannot be used to enumerate usernames.
   const hash =
-    user?.password_hash ??
+    user?.passwordHash ??
     "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
 
   const valid = await bcrypt.compare(password, hash);
@@ -78,19 +68,21 @@ export async function POST(req: NextRequest) {
   const token = await createSessionToken({
     sub: user.id,
     username: user.username,
-    displayName: user.display_name,
+    displayName: user.displayName,
   });
 
   await setSessionCookie(token);
 
-  // Best-effort; a failure here must not block the login.
-  await supabase
-    .from("admin_users")
-    .update({ last_login_at: new Date().toISOString() })
-    .eq("id", user.id);
+  // Best-effort: update lastLoginAt without blocking the response.
+  prisma.adminUser
+    .update({
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
+    })
+    .catch(() => {});
 
   return NextResponse.json({
     username: user.username,
-    displayName: user.display_name,
+    displayName: user.displayName,
   });
 }

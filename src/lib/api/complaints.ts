@@ -1,28 +1,20 @@
 /**
- * NETRONiX Complaint Portal — API Abstraction Layer
- *
- * All complaint-related API calls go through this module.
- * Currently uses the Next.js mock API routes.
- * To integrate FastAPI: replace BASE_URL and adjust the fetch calls below.
- *
- * FastAPI integration:
- *   const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000'
+ * NETRONiX Complaint Portal — Client API Layer
+ * Connects frontend components to persistent Next.js PostgreSQL endpoints.
  */
 
-const BASE_URL = '/api';
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-export type IssueType = 'network' | 'wifi' | 'lan' | 'other';
+export type IssueType = "network" | "wifi" | "lan" | "other";
 
 export type ComplaintStatus =
-  | 'reported'
-  | 'assigned'
-  | 'in_progress'
-  | 'resolved';
+  | "reported"
+  | "assigned"
+  | "in_progress"
+  | "resolved"
+  | "rejected";
 
 export interface ComplaintPayload {
   name: string;
+  email: string;
   location: string; // room / block
   issueType: IssueType;
   description: string;
@@ -30,55 +22,68 @@ export interface ComplaintPayload {
 
 export interface ComplaintResponse {
   id: string;
+  ticketId: string;
   status: ComplaintStatus;
   createdAt: string;
   message: string;
 }
 
 export interface ComplaintStatusResponse {
-  id: string;
+  ticketId: string;
+  name: string;
+  location: string;
+  issueType: IssueType;
+  description: string;
   status: ComplaintStatus;
+  adminResponse: string | null;
+  createdAt: string;
   updatedAt: string;
-  estimatedResolution?: string;
+  resolvedAt?: string | null;
 }
 
-// ─── API Functions ────────────────────────────────────────────────────────────
+const BASE_URL = "/api";
 
 /**
  * Submit a new complaint report.
- * FastAPI equivalent: POST /complaints
  */
 export async function submitComplaint(
   data: ComplaintPayload
 ): Promise<ComplaintResponse> {
   const res = await fetch(`${BASE_URL}/complaints`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 
+  const body = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw new Error(error?.message ?? 'Failed to submit complaint');
+    throw new Error(body?.message || "Failed to submit complaint");
   }
 
-  return res.json();
+  return body;
 }
 
 /**
- * Fetch the current status of a complaint by ID.
- * FastAPI equivalent: GET /complaints/{id}
+ * Fetch the current status of a complaint by Ticket ID and verified Student Email.
  */
 export async function getComplaintStatus(
-  id: string
+  ticketId: string,
+  email: string
 ): Promise<ComplaintStatusResponse> {
-  const res = await fetch(`${BASE_URL}/complaints/${id}`, {
-    cache: 'no-store',
+  const cleanId = ticketId.trim().toUpperCase();
+  const cleanEmail = email.trim().toLowerCase();
+
+  const url = `${BASE_URL}/complaints/${encodeURIComponent(cleanId)}?email=${encodeURIComponent(cleanEmail)}`;
+  const res = await fetch(url, {
+    cache: "no-store",
   });
 
+  const body = await res.json().catch(() => ({}));
+
   if (!res.ok) {
-    throw new Error('Failed to fetch complaint status');
+    throw new Error(body?.message || "Complaint not found or email does not match");
   }
 
-  return res.json();
+  return body;
 }

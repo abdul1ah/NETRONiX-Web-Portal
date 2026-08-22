@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/auth";
+import { EventStatus } from "@prisma/client";
 
 /**
  * PATCH /api/admin/events/[id]
@@ -12,20 +13,20 @@ import { requireSession } from "@/lib/auth";
 
 const nullableDate = z
   .union([z.string().datetime({ offset: true }), z.literal(""), z.null()])
-  .transform((v) => (v === "" || v === null ? null : v))
+  .transform((v) => (v === "" || v === null ? null : new Date(v)))
   .optional();
 
 const UpdateSchema = z.object({
-  status:            z.enum(["coming_soon", "live", "past"]).optional(),
-  auto_live_at:      nullableDate,
-  auto_close_at:     nullableDate,
-  registration_open: z.boolean().optional(),
-  max_registrations: z.number().int().positive().nullable().optional(),
-  title:             z.string().trim().min(1).max(150).optional(),
-  subtitle:          z.string().trim().max(150).nullable().optional(),
-  description:       z.string().trim().max(2000).optional(),
-  form_intro:        z.string().trim().max(1000).nullable().optional(),
-  sort_order:        z.number().int().optional(),
+  status: z.nativeEnum(EventStatus).optional(),
+  autoLiveAt: nullableDate,
+  autoCloseAt: nullableDate,
+  registrationOpen: z.boolean().optional(),
+  maxRegistrations: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().min(1).max(150).optional(),
+  subtitle: z.string().trim().max(150).nullable().optional(),
+  description: z.string().trim().max(2000).optional(),
+  formIntro: z.string().trim().max(1000).nullable().optional(),
+  sortOrder: z.number().int().optional(),
 });
 
 export async function PATCH(
@@ -58,27 +59,15 @@ export async function PATCH(
     return NextResponse.json({ message: "Nothing to update" }, { status: 400 });
   }
 
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("events")
-    .update(parsed.data)
-    .eq("id", id)
-    .select("*")
-    .maybeSingle();
-
-  if (error) {
-    console.error("[admin events] update failed", error);
-    return NextResponse.json(
-      { message: "Could not save the change." },
-      { status: 500 }
-    );
-  }
-
-  if (!data) {
+  try {
+    const event = await prisma.event.update({
+      where: { id },
+      data: parsed.data,
+    });
+    return NextResponse.json({ event });
+  } catch {
     return NextResponse.json({ message: "Event not found" }, { status: 404 });
   }
-
-  return NextResponse.json({ event: data });
 }
 
 /** DELETE /api/admin/events/[id] — removes the event and all its submissions. */
@@ -92,17 +81,14 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const supabase = createAdminClient();
 
-  const { error } = await supabase.from("events").delete().eq("id", id);
-
-  if (error) {
-    console.error("[admin events] delete failed", error);
+  try {
+    await prisma.event.delete({ where: { id } });
+    return NextResponse.json({ ok: true });
+  } catch {
     return NextResponse.json(
       { message: "Could not delete the event." },
       { status: 500 }
     );
   }
-
-  return NextResponse.json({ ok: true });
 }

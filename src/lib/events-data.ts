@@ -3,15 +3,15 @@ import "server-only";
 /**
  * Server-side event fetching for the public website.
  *
- * If Supabase is not configured yet, or is unreachable, the site falls back to
- * the seeded list below so the homepage never breaks. The fallback mirrors the
- * seed data in supabase/schema.sql.
+ * Fetches events from the PostgreSQL database via Prisma. If the database is
+ * unreachable, the site falls back to the seeded list below so the homepage
+ * never breaks. The fallback mirrors the seed data in prisma/seed.ts.
  */
 
-import { createAdminClient, isAdminConfigured } from "@/lib/supabase/server";
-import type { EventRow } from "@/lib/supabase/types";
+import { prisma } from "@/lib/prisma";
+import type { Event } from "@prisma/client";
 
-const FALLBACK_EVENTS: EventRow[] = [
+const FALLBACK_EVENTS: Event[] = [
   {
     id: "fallback-ugx",
     slug: "ugx",
@@ -19,19 +19,19 @@ const FALLBACK_EVENTS: EventRow[] = [
     subtitle: "Annual Gaming Event",
     description:
       "Pakistan's largest university gaming tournament. Featuring CS:GO, FIFA, Valorant, and more across two unforgettable days at GIKI.",
-    image_src: "/events/UGX_v2.jpeg",
-    image_placeholder: "UGX",
-    accent_color: "#0D0D12",
+    imageSrc: "/events/UGX_v2.jpeg",
+    imagePlaceholder: "UGX",
+    accentColor: "#0D0D12",
     status: "coming_soon",
-    auto_live_at: null,
-    auto_close_at: null,
-    registration_open: true,
-    max_registrations: null,
-    form_intro: null,
-    is_featured: true,
-    sort_order: 10,
-    created_at: "",
-    updated_at: "",
+    autoLiveAt: null,
+    autoCloseAt: null,
+    registrationOpen: true,
+    maxRegistrations: null,
+    formIntro: null,
+    isFeatured: true,
+    sortOrder: 10,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "fallback-hnc",
@@ -40,19 +40,19 @@ const FALLBACK_EVENTS: EventRow[] = [
     subtitle: "Hackathon",
     description:
       "A 24-hour hackathon challenging students to build innovative solutions to real-world networking and infrastructure problems.",
-    image_src: "/events/HNC_v2.jpeg",
-    image_placeholder: "H&C",
-    accent_color: "#0D120D",
+    imageSrc: "/events/HNC_v2.jpeg",
+    imagePlaceholder: "H&C",
+    accentColor: "#0D120D",
     status: "coming_soon",
-    auto_live_at: null,
-    auto_close_at: null,
-    registration_open: true,
-    max_registrations: null,
-    form_intro: null,
-    is_featured: false,
-    sort_order: 20,
-    created_at: "",
-    updated_at: "",
+    autoLiveAt: null,
+    autoCloseAt: null,
+    registrationOpen: false,
+    maxRegistrations: null,
+    formIntro: null,
+    isFeatured: false,
+    sortOrder: 20,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "fallback-inductions",
@@ -61,40 +61,40 @@ const FALLBACK_EVENTS: EventRow[] = [
     subtitle: "Society Recruitment",
     description:
       "Join NETRONiX. Open inductions for engineers, developers, event coordinators, and creative minds.",
-    image_src: "/events/Inductions.jpeg",
-    image_placeholder: "IND",
-    accent_color: "#120D0D",
-    status: "coming_soon",
-    auto_live_at: null,
-    auto_close_at: null,
-    registration_open: true,
-    max_registrations: null,
-    form_intro: null,
-    is_featured: false,
-    sort_order: 30,
-    created_at: "",
-    updated_at: "",
+    imageSrc: "/events/Inductions.jpeg",
+    imagePlaceholder: "IND",
+    accentColor: "#120D0D",
+    status: "live",
+    autoLiveAt: null,
+    autoCloseAt: null,
+    registrationOpen: false,
+    maxRegistrations: null,
+    formIntro: null,
+    isFeatured: false,
+    sortOrder: 30,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
-    id: "fallback-volunteer",
+    id: "fallback-vol",
     slug: "volunteer-call",
     title: "Volunteer Call",
     subtitle: "Open Call",
     description:
       "Help us run the largest events at GIKI. Volunteer for UGX, Hack n Connect, and SNP as crew, logistics, or tech support.",
-    image_src: "/events/Volcall.jpeg",
-    image_placeholder: "VOL",
-    accent_color: "#0D0D0D",
+    imageSrc: "/events/Volcall.jpeg",
+    imagePlaceholder: "VOL",
+    accentColor: "#0D0D0D",
     status: "coming_soon",
-    auto_live_at: null,
-    auto_close_at: null,
-    registration_open: true,
-    max_registrations: null,
-    form_intro: null,
-    is_featured: false,
-    sort_order: 40,
-    created_at: "",
-    updated_at: "",
+    autoLiveAt: null,
+    autoCloseAt: null,
+    registrationOpen: false,
+    maxRegistrations: null,
+    formIntro: null,
+    isFeatured: false,
+    sortOrder: 40,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
   {
     id: "fallback-snp",
@@ -103,41 +103,40 @@ const FALLBACK_EVENTS: EventRow[] = [
     subtitle: "Society Night & Party",
     description:
       "NETRONiX's annual celebration. Live performances, food, and the entire GIKI community together under one roof.",
-    image_src: "/events/SNP.jpeg",
-    image_placeholder: "SNP",
-    accent_color: "#0A0A0A",
+    imageSrc: "/events/SNP.jpeg",
+    imagePlaceholder: "SNP",
+    accentColor: "#0A0A0A",
     status: "past",
-    auto_live_at: null,
-    auto_close_at: null,
-    registration_open: false,
-    max_registrations: null,
-    form_intro: null,
-    is_featured: false,
-    sort_order: 50,
-    created_at: "",
-    updated_at: "",
+    autoLiveAt: null,
+    autoCloseAt: null,
+    registrationOpen: false,
+    maxRegistrations: null,
+    formIntro: null,
+    isFeatured: false,
+    sortOrder: 50,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   },
 ];
 
-export async function getPublicEvents(): Promise<EventRow[]> {
-  if (!isAdminConfigured()) return FALLBACK_EVENTS;
-
+export async function fetchEvents(): Promise<Event[]> {
   try {
-    const supabase = createAdminClient();
-    const { data, error } = await supabase
-      .from("events")
-      .select("*")
-      .order("sort_order", { ascending: true })
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("[events] fetch failed, using fallback", error);
-      return FALLBACK_EVENTS;
-    }
-
-    return data && data.length > 0 ? (data as EventRow[]) : FALLBACK_EVENTS;
-  } catch (err) {
-    console.error("[events] fetch threw, using fallback", err);
+    const events = await prisma.event.findMany({
+      orderBy: { sortOrder: "asc" },
+    });
+    return events.length > 0 ? events : FALLBACK_EVENTS;
+  } catch (error) {
+    console.error("[events-data] failed to fetch events, using fallback:", error);
     return FALLBACK_EVENTS;
   }
 }
+
+export async function fetchEventBySlug(slug: string): Promise<Event | null> {
+  try {
+    return await prisma.event.findUnique({ where: { slug } });
+  } catch {
+    return FALLBACK_EVENTS.find((e) => e.slug === slug) ?? null;
+  }
+}
+
+export type { Event as EventRow };

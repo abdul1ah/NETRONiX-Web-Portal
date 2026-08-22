@@ -2,30 +2,16 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { createAdminClient, isAdminConfigured } from "@/lib/supabase/server";
 import { effectiveStatus, isRegistrationOpen, STATUS_LABEL } from "@/lib/events";
 import { RegistrationForm } from "@/components/forms/registration-form";
-import type { EventRow } from "@/lib/supabase/types";
+import type { Event } from "@prisma/client";
+import { fetchEventBySlug } from "@/lib/events-data";
 
 // Registration state depends on the clock and on admin edits, so never cache.
 export const dynamic = "force-dynamic";
 
-async function getEvent(slug: string): Promise<EventRow | null> {
-  if (!isAdminConfigured()) return null;
-
-  const supabase = createAdminClient();
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error) {
-    console.error("[register page] event lookup failed", error);
-    return null;
-  }
-
-  return data;
+async function getEvent(slug: string): Promise<Event | null> {
+  return await fetchEventBySlug(slug);
 }
 
 export async function generateMetadata({
@@ -56,7 +42,7 @@ export default async function RegisterPage({
   if (!event) notFound();
 
   const status = effectiveStatus(event);
-  const open   = isRegistrationOpen(event);
+  const open = isRegistrationOpen(event);
 
   return (
     <main
@@ -64,7 +50,6 @@ export default async function RegisterPage({
       style={{ backgroundColor: "#0A0A0A" }}
     >
       <div className="max-w-3xl mx-auto flex flex-col gap-10">
-
         {/* ── Back link ────────────────────────────────────────────────── */}
         <Link
           href="/#events"
@@ -76,13 +61,13 @@ export default async function RegisterPage({
 
         {/* ── Event header ─────────────────────────────────────────────── */}
         <header className="flex flex-col gap-5">
-          {event.image_src && (
+          {event.imageSrc && (
             <div
               className="relative w-full aspect-[21/9] rounded-2xl overflow-hidden border"
               style={{ borderColor: "rgba(255,255,255,0.08)" }}
             >
               <Image
-                src={event.image_src}
+                src={event.imageSrc}
                 alt=""
                 fill
                 className="object-cover"
@@ -129,12 +114,12 @@ export default async function RegisterPage({
         {/* ── Form, or a closed-state notice ───────────────────────────── */}
         {open ? (
           <>
-            {event.form_intro && (
+            {event.formIntro && (
               <p
                 className="text-sm leading-relaxed border-l-2 pl-4"
                 style={{ color: "#B3B3B3", borderColor: "#E11D2E" }}
               >
-                {event.form_intro}
+                {event.formIntro}
               </p>
             )}
 
@@ -169,7 +154,7 @@ export default async function RegisterPage({
 
             <Link
               href="/#events"
-              className="mt-3 inline-flex items-center justify-center w-fit py-2.5 px-5 rounded-lg text-sm font-medium border transition-colors"
+              className="mt-3 inline-flex items-center justify-center w-fit py-2.5 px-5 rounded-lg text-sm font-medium border transition-colors hover:bg-white/[0.03]"
               style={{
                 borderColor: "rgba(225,29,46,0.4)",
                 color: "#FFFFFF",

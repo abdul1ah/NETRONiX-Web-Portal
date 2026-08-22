@@ -11,6 +11,9 @@ import "server-only";
 
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import { NextRequest } from "next/server";
+import { prisma } from "./prisma";
+import bcrypt from "bcryptjs";
 
 export const SESSION_COOKIE = "netronix_admin_session";
 
@@ -44,6 +47,10 @@ function sessionHours(): number {
 export function isAuthConfigured(): boolean {
   const secret = process.env.ADMIN_SESSION_SECRET;
   return Boolean(secret && secret.length >= 32);
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
 }
 
 // ─── Token ───────────────────────────────────────────────────────────────────
@@ -117,4 +124,41 @@ export async function getSession(): Promise<AdminSession | null> {
  */
 export async function requireSession(): Promise<AdminSession | null> {
   return getSession();
+}
+
+/**
+ * Enhanced guard that fetches the full user record from the database.
+ * This satisfies Friend 2's API routes (getAuthenticatedAdmin).
+ */
+export async function getAuthenticatedAdmin(req?: NextRequest) {
+  let token: string | undefined;
+
+  if (req) {
+    token = req.cookies.get(SESSION_COOKIE)?.value;
+  } else {
+    const cookieStore = await cookies();
+    token = cookieStore.get(SESSION_COOKIE)?.value;
+  }
+
+  const session = await verifySessionToken(token);
+  if (!session) return null;
+
+  const user = await prisma.adminUser.findUnique({
+    where: { id: session.sub, isActive: true },
+    select: {
+      id: true,
+      username: true,
+      email: true,
+      displayName: true,
+      role: true,
+    },
+  });
+
+  if (!user) return null;
+
+  // Map displayName to name to satisfy the API
+  return {
+    ...user,
+    name: user.displayName || user.username,
+  };
 }
