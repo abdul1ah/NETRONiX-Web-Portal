@@ -49,3 +49,6 @@ next-env.d.ts
 
 # zip files
 *.zip
+
+# temp
+.tmp_*.json
