@@ -6,13 +6,21 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Role {
+  ADMIN
+  MANAGER
+}
+
 // ─── Admin Auth ──────────────────────────────────────────────────────────────
 
 model AdminUser {
   id            String    @id @default(uuid())
   username      String    @unique
+  email         String    @unique
   passwordHash  String    @map("password_hash")
   displayName   String?   @map("display_name")
+  role          Role      @default(MANAGER)
+  isActive      Boolean   @default(true) @map("is_active")
   lastLoginAt   DateTime? @map("last_login_at")
   createdAt     DateTime  @default(now()) @map("created_at")
 
@@ -95,11 +103,6 @@ model Registration {
 }
 
 // ─── Complaints ──────────────────────────────────────────────────────────────
-
-enum Role {
-  ADMIN
-  MANAGER
-}
 
 enum IssueType {
   NETWORK

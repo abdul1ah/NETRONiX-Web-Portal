@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminSession } from "@/lib/auth";
-import type { EventRow, EventStatus } from "@/lib/supabase/types";
+import type { Event, EventStatus } from "@prisma/client";
 import { EventControls } from "./event-controls";
 import { SubmissionsTable } from "./submissions-table";
 
 interface AdminDashboardProps {
   session: AdminSession;
-  events: EventRow[];
+  events: Event[];
   counts: Record<string, number>;
   /** Effective status per event id, resolved on the server. */
   statuses: Record<string, EventStatus>;
@@ -50,7 +50,7 @@ export function AdminDashboard({
     >
       <div className="max-w-6xl mx-auto flex flex-col gap-8">
 
-        {/* ── Header ───────────────────────────────────────────────────── */}
+        {/* ── Header ──────────────────────────────────────────────────────── */}
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-col gap-1">
             <p
@@ -73,14 +73,14 @@ export function AdminDashboard({
 
           <button
             onClick={logout}
-            className="py-2.5 px-5 rounded-lg text-sm font-medium border transition-colors"
+            className="py-2.5 px-5 rounded-lg text-sm font-medium border transition-colors hover:bg-white/[0.03]"
             style={{ borderColor: "rgba(255,255,255,0.12)", color: "#B3B3B3" }}
           >
             Sign out
           </button>
         </header>
 
-        {/* ── Tabs ─────────────────────────────────────────────────────── */}
+        {/* ── Tabs ────────────────────────────────────────────────────────── */}
         <div
           className="flex gap-1 p-1 rounded-xl border w-fit"
           style={{ backgroundColor: "#141414", borderColor: "rgba(255,255,255,0.08)" }}
@@ -102,9 +102,19 @@ export function AdminDashboard({
               {label}
             </button>
           ))}
+          <button
+            onClick={() => router.push("/admin")}
+            className="py-2 px-5 rounded-lg text-sm font-medium transition-colors"
+            style={{
+              backgroundColor: "transparent",
+              color: "#666666",
+            }}
+          >
+            Complaints
+          </button>
         </div>
 
-        {/* ── Events tab ───────────────────────────────────────────────── */}
+        {/* ── Events tab ──────────────────────────────────────────────────── */}
         {tab === "events" && (
           <section className="flex flex-col gap-4">
             <p className="text-sm" style={{ color: "#666666" }}>
@@ -122,8 +132,7 @@ export function AdminDashboard({
                   color: "#B3B3B3",
                 }}
               >
-                No events yet. Run <code>supabase/schema.sql</code> in the
-                Supabase SQL editor to create and seed them.
+                No events yet.
               </div>
             ) : (
               events.map((event) => (
@@ -139,7 +148,7 @@ export function AdminDashboard({
           </section>
         )}
 
-        {/* ── Submissions tab ──────────────────────────────────────────── */}
+        {/* ── Submissions tab ─────────────────────────────────────────────── */}
         {tab === "submissions" && (
           <section className="flex flex-col gap-5">
             {/* Event picker — submissions are always scoped to exactly one
@@ -151,7 +160,7 @@ export function AdminDashboard({
                   <button
                     key={event.id}
                     onClick={() => setSelectedEventId(event.id)}
-                    className="py-2 px-4 rounded-lg text-sm font-medium border transition-colors"
+                    className="py-2 px-4 rounded-lg text-sm font-medium border transition-colors hover:bg-white/[0.03]"
                     style={{
                       backgroundColor: active
                         ? "rgba(225,29,46,0.15)"

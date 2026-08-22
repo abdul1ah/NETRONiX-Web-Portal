@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         orderBy: { [sortBy]: sortOrder },
         include: {
           assignedTo: {
-            select: { id: true, name: true, email: true, role: true },
+            select: { id: true, displayName: true, username: true, email: true, role: true },
           },
           _count: {
             select: { history: true },
@@ -70,9 +70,17 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
+    const mappedComplaints = complaints.map(c => ({
+      ...c,
+      assignedTo: c.assignedTo ? {
+        ...c.assignedTo,
+        name: c.assignedTo.displayName || c.assignedTo.username,
+      } : null
+    }));
+
     return NextResponse.json(
       {
-        complaints,
+        complaints: mappedComplaints,
         pagination: {
           total,
           page,

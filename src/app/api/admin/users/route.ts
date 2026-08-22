@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
       where: { isActive: true },
       select: {
         id: true,
-        name: true,
+        displayName: true,
+        username: true,
         email: true,
         role: true,
         isActive: true,
@@ -31,10 +32,15 @@ export async function GET(req: NextRequest) {
           select: { assignedComplaints: true },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { displayName: "asc" },
     });
 
-    return NextResponse.json({ users }, { status: 200 });
+    const mappedUsers = users.map((u) => ({
+      ...u,
+      name: u.displayName || u.username,
+    }));
+
+    return NextResponse.json({ users: mappedUsers }, { status: 200 });
   } catch (error) {
     console.error("Admin users list error:", error);
     return NextResponse.json(
@@ -87,7 +93,8 @@ export async function POST(req: NextRequest) {
 
     const newUser = await prisma.adminUser.create({
       data: {
-        name,
+        displayName: name,
+        username: email.split("@")[0] + Math.floor(Math.random() * 1000), // generated username
         email: email.toLowerCase(),
         passwordHash,
         role,
@@ -95,7 +102,7 @@ export async function POST(req: NextRequest) {
       },
       select: {
         id: true,
-        name: true,
+        displayName: true,
         email: true,
         role: true,
         isActive: true,
@@ -104,7 +111,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json(
-      { message: "Staff account created successfully", user: newUser },
+      { message: "Staff account created successfully", user: { ...newUser, name: newUser.displayName } },
       { status: 201 }
     );
   } catch (error) {

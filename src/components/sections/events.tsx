@@ -1,6 +1,7 @@
 import { SectionWrapper, SectionItem } from "@/components/ui/section-wrapper";
 import { EventCard } from "@/components/ui/event-card";
-import { getPublicEvents } from "@/lib/events-data";
+import { fetchEvents } from "@/lib/events-data";
+import type { EventRow } from "@/lib/events-data";
 import {
   effectiveStatus,
   isRegistrationOpen,
@@ -18,7 +19,7 @@ import {
  */
 
 export async function Events() {
-  const events = await getPublicEvents();
+  const events = await fetchEvents();
 
   if (events.length === 0) return null;
 
@@ -74,13 +75,14 @@ export async function Events() {
             {/* Large featured card — spans 2 rows on lg */}
             <div className="md:col-span-1 lg:row-span-2">
               <EventCard
+                key={featured.id}
                 title={featured.title}
-                subtitle={featured.subtitle ?? undefined}
+                subtitle={featured.subtitle || ""}
                 description={featured.description}
                 status={effectiveStatus(featured)}
-                accentColor={featured.accent_color}
-                imagePlaceholder={featured.image_placeholder ?? undefined}
-                imageSrc={featured.image_src ?? undefined}
+                accentColor={featured.accentColor}
+                imagePlaceholder={featured.imagePlaceholder || ""}
+                imageSrc={featured.imageSrc || ""}
                 registerHref={
                   isRegistrationOpen(featured)
                     ? registrationHref(featured.slug)
@@ -91,16 +93,16 @@ export async function Events() {
             </div>
 
             {/* Remaining cards in 2×2 */}
-            {rest.map((event) => (
+            {rest.map((event: EventRow) => (
               <EventCard
                 key={event.id}
                 title={event.title}
-                subtitle={event.subtitle ?? undefined}
+                subtitle={event.subtitle || ""}
                 description={event.description}
                 status={effectiveStatus(event)}
-                accentColor={event.accent_color}
-                imagePlaceholder={event.image_placeholder ?? undefined}
-                imageSrc={event.image_src ?? undefined}
+                accentColor={event.accentColor}
+                imagePlaceholder={event.imagePlaceholder || ""}
+                imageSrc={event.imageSrc || ""}
                 registerHref={
                   isRegistrationOpen(event)
                     ? registrationHref(event.slug)

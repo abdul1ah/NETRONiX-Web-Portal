@@ -174,7 +174,7 @@ export async function PATCH(
         },
         include: {
           assignedTo: {
-            select: { id: true, name: true, email: true, role: true },
+            select: { id: true, displayName: true, username: true, email: true, role: true },
           },
         },
       });
@@ -215,9 +215,17 @@ export async function PATCH(
       }
     }
 
+    const mappedComplaint = {
+      ...updatedComplaint,
+      assignedTo: updatedComplaint.assignedTo ? {
+        ...updatedComplaint.assignedTo,
+        name: updatedComplaint.assignedTo.displayName || updatedComplaint.assignedTo.username,
+      } : null
+    };
+
     return NextResponse.json({
       message: "Complaint updated successfully",
-      complaint: updatedComplaint,
+      complaint: mappedComplaint,
     });
   } catch (error) {
     console.error("Complaint update error:", error);

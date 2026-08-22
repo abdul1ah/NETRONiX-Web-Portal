@@ -25,6 +25,7 @@ async function main() {
   let email = process.env.ADMIN_EMAIL;
   let password = process.env.ADMIN_PASSWORD;
   const name = process.env.ADMIN_NAME || "System Administrator";
+  const username = process.env.ADMIN_USERNAME || "admin";
 
   if (!email) {
     email = await askQuestion("Enter Administrator Email: ");
@@ -52,14 +53,15 @@ async function main() {
   const admin = await prisma.adminUser.upsert({
     where: { email: cleanEmail },
     update: {
-      name,
+      displayName: name,
       passwordHash,
       role: Role.ADMIN,
       isActive: true,
     },
     create: {
       email: cleanEmail,
-      name,
+      username,
+      displayName: name,
       passwordHash,
       role: Role.ADMIN,
       isActive: true,
@@ -68,7 +70,7 @@ async function main() {
 
   console.log("\n✅ Success! Admin account provisioned:");
   console.log(`   ID:    ${admin.id}`);
-  console.log(`   Name:  ${admin.name}`);
+  console.log(`   Name:  ${admin.displayName}`);
   console.log(`   Email: ${admin.email}`);
   console.log(`   Role:  ${admin.role}\n`);
   console.log("You can now log in at /admin/login\n");

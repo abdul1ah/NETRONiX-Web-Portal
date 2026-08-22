@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { RegistrationRow, RegistrationStatus } from "@/lib/supabase/types";
+import type { Registration, RegistrationStatus } from "@prisma/client";
 import { skillLabel } from "@/lib/events";
 
 const STATUS_OPTIONS: RegistrationStatus[] = [
@@ -12,10 +12,10 @@ const STATUS_OPTIONS: RegistrationStatus[] = [
 ];
 
 const STATUS_COLOR: Record<RegistrationStatus, string> = {
-  pending:    "#B3B3B3",
-  confirmed:  "#4ADE80",
+  pending: "#B3B3B3",
+  confirmed: "#4ADE80",
   waitlisted: "#FBBF24",
-  rejected:   "#E11D2E",
+  rejected: "#E11D2E",
 };
 
 interface SubmissionsTableProps {
@@ -24,12 +24,12 @@ interface SubmissionsTableProps {
 }
 
 export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps) {
-  const [rows, setRows]       = useState<RegistrationRow[]>([]);
-  const [total, setTotal]     = useState(0);
-  const [page, setPage]       = useState(0);
-  const [query, setQuery]     = useState("");
+  const [rows, setRows] = useState<Registration[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const pageSize = 50;
@@ -98,7 +98,6 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
 
   return (
     <div className="flex flex-col gap-4">
-
       {/* ── Toolbar ────────────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <input
@@ -124,7 +123,7 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
 
           <a
             href={`/api/admin/registrations/export?eventId=${eventId}`}
-            className="py-2.5 px-4 rounded-lg text-sm font-medium border transition-colors"
+            className="py-2.5 px-4 rounded-lg text-sm font-medium border transition-colors hover:bg-white/[0.03]"
             style={{ borderColor: "rgba(255,255,255,0.12)", color: "#B3B3B3" }}
           >
             Export CSV
@@ -180,10 +179,10 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
                     style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
                   >
                     <td className="px-4 py-3" style={{ color: "#FFFFFF" }}>
-                      {reg.full_name}
+                      {reg.fullName}
                     </td>
                     <td className="px-4 py-3 font-mono text-xs" style={{ color: "#B3B3B3" }}>
-                      {reg.registration_number}
+                      {reg.registrationNumber}
                     </td>
                     <td className="px-4 py-3" style={{ color: "#B3B3B3" }}>
                       {reg.batch}
@@ -252,9 +251,9 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
                                 </span>
                               ))}
                             </div>
-                            {reg.other_skill && (
+                            {reg.otherSkill && (
                               <p className="text-xs mt-1" style={{ color: "#B3B3B3" }}>
-                                Other: {reg.other_skill}
+                                Other: {reg.otherSkill}
                               </p>
                             )}
                           </div>
@@ -270,12 +269,12 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
                               className="text-sm leading-relaxed whitespace-pre-wrap max-w-3xl"
                               style={{ color: "#B3B3B3" }}
                             >
-                              {reg.about_netronix}
+                              {reg.aboutNetronix}
                             </p>
                           </div>
 
                           <p className="text-xs" style={{ color: "#666666" }}>
-                            Submitted {new Date(reg.created_at).toLocaleString()}
+                            Submitted {new Date(reg.createdAt).toLocaleString()}
                           </p>
                         </div>
                       </td>
@@ -294,7 +293,7 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
           <button
             disabled={page === 0}
             onClick={() => setPage((p) => Math.max(0, p - 1))}
-            className="py-2 px-4 rounded-lg text-sm border transition-colors disabled:opacity-40"
+            className="py-2 px-4 rounded-lg text-sm border transition-colors disabled:opacity-40 hover:bg-white/[0.03]"
             style={{ borderColor: "rgba(255,255,255,0.12)", color: "#B3B3B3" }}
           >
             ← Previous
@@ -307,7 +306,7 @@ export function SubmissionsTable({ eventId, eventTitle }: SubmissionsTableProps)
           <button
             disabled={page >= pageCount - 1}
             onClick={() => setPage((p) => p + 1)}
-            className="py-2 px-4 rounded-lg text-sm border transition-colors disabled:opacity-40"
+            className="py-2 px-4 rounded-lg text-sm border transition-colors disabled:opacity-40 hover:bg-white/[0.03]"
             style={{ borderColor: "rgba(255,255,255,0.12)", color: "#B3B3B3" }}
           >
             Next →

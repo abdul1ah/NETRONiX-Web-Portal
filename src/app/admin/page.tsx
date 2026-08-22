@@ -285,7 +285,7 @@ export default function AdminDashboardPage() {
   // Handle Logout
   const handleLogout = async () => {
     uiSounds.playClick();
-    await fetch("/api/admin/auth/logout", { method: "POST" });
+    await fetch("/api/admin/logout", { method: "POST" });
     router.push("/admin/login");
     router.refresh();
   };
@@ -307,6 +307,12 @@ export default function AdminDashboardPage() {
           <div className="flex items-center gap-4">
             {currentUser && (
               <div className="flex items-center gap-3">
+                <Link
+                  href="/admin/portal"
+                  className="hidden md:inline-block px-3 py-1.5 rounded-lg text-xs font-mono font-medium border border-white/10 bg-[#141414] hover:bg-[#1A1A1A] transition-colors"
+                >
+                  Events Portal
+                </Link>
                 <div className="w-8 h-8 rounded-full bg-neutral-800 border border-white/10 flex items-center justify-center text-sm font-semibold text-neutral-300">
                   {currentUser.name[0]}
                 </div>

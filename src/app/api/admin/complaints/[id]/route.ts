@@ -19,13 +19,13 @@ export async function GET(
       where: { ticketId },
       include: {
         assignedTo: {
-          select: { id: true, name: true, email: true, role: true },
+          select: { id: true, displayName: true, username: true, email: true, role: true },
         },
         history: {
           orderBy: { createdAt: "desc" },
           include: {
             changedBy: {
-              select: { id: true, name: true, email: true, role: true },
+              select: { id: true, displayName: true, username: true, email: true, role: true },
             },
           },
         },
@@ -36,7 +36,22 @@ export async function GET(
       return NextResponse.json({ message: "Complaint not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ complaint }, { status: 200 });
+    const mappedComplaint = {
+      ...complaint,
+      assignedTo: complaint.assignedTo ? {
+        ...complaint.assignedTo,
+        name: complaint.assignedTo.displayName || complaint.assignedTo.username,
+      } : null,
+      history: complaint.history.map(h => ({
+        ...h,
+        changedBy: h.changedBy ? {
+          ...h.changedBy,
+          name: h.changedBy.displayName || h.changedBy.username,
+        } : null
+      }))
+    };
+
+    return NextResponse.json({ complaint: mappedComplaint }, { status: 200 });
   } catch (error) {
     console.error("Admin complaint detail error:", error);
     return NextResponse.json(
