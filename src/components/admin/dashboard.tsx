@@ -103,7 +103,7 @@ export function AdminDashboard({
             </button>
           ))}
           <button
-            onClick={() => router.push("/admin")}
+            onClick={() => router.push("/admin/complaints")}
             className="py-2 px-5 rounded-lg text-sm font-medium transition-colors"
             style={{
               backgroundColor: "transparent",
